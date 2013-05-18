@@ -1,0 +1,939 @@
+<?xml version='1.0' standalone='yes'?>
+
+<!DOCTYPE PLUGIN [
+<!ENTITY plugin "AirVideo">
+<!ENTITY author "overbyrn">
+<!ENTITY plgver "1.2">
+<!ENTITY pkgnam "airvideo">
+<!ENTITY pkg "/boot/packages">
+<!ENTITY plg "/boot/config/plugins/airvideo">
+<!ENTITY img "/boot/config/plugins/images">
+<!ENTITY gui "/usr/local/emhttp/plugins">
+<!ENTITY url1 "https://raw.github.com/overbyrn/UnRAID/master">
+<!ENTITY url2 "https://dl.dropbox.com/u/572553/UnRAID">
+<!ENTITY url3 "http://s3.amazonaws.com/AirVideo/Linux-2.4.6-beta3">
+<!ENTITY dev "false"><!-- set to "true" during plugin development -->
+]>
+
+<PLUGIN>
+<!--
+Copyright 2013, Rich Manton (overbyrn)
+
+This Plugin installs and provides AirVideo support for unRAID.
+
+Plugin file locations:
+ /boot/plugins/airvideo_overbyrn.plg                                            # this file
+ /tmp/plugin-prepare                                                            # network readiness script
+ /tmp/plugin-cleanup                                                            # deletion script
+ /tmp/plugin-chkcfg                                                             # config update check script
+ /tmp/plugin-install                                                            # installation script
+
+ /boot/config/plugins/airvideo/AirVideoServerLinux.jar                          # AirVideo Java Application
+   
+ /boot/packages/mpeg4ip-1.5.0.1-i486-1ahl.tgz                                   # package dependency 
+ /boot/packages/libmp4v2-1.9.1-i486-3_cngu.tgz                                  # package dependency 
+ /boot/packages/lame-3.99-i486-1sl.txz                                          # package dependency 
+ /boot/packages/alsa-lib-1.0.25-i486-1.txz                                      # package dependency 
+ /boot/packages/faac-1.28-i486-5sl.txz                                          # package dependency 
+ /boot/packages/libav-i486-rj.txz                                               # package dependency 
+ /boot/packages/x264-snapshot-20120727-2245-stable-i486-rj.tgz                  # package dependency 
+ /boot/packages/jre-7u2-i586.txz                                                # package dependency
+ 
+ /boot/config/plugins/airvideo/airvideo.png                                     # icon file (copied to webgui plugin dir)
+ /boot/config/plugins/images/device_status.png                                  # icon file (copied to webgui plugin dir)
+ /boot/config/plugins/images/new_config.png                                     # icon file (copied to webgui plugin dir)
+ /boot/config/plugins/images/information.png                                    # icon file (copied to webgui plugin dir)
+ 
+ /boot/config/plugins/airvideo/airvideo.cfg                                     # non-volatile configuration
+ /etc/rc.d/rc.airvideo                                                          # plugin control script
+ /usr/local/emhttp/plugins/airvideo/airvideo.page                               # page file for webGui menu system
+ /usr/local/emhttp/plugins/airvideo/airvideo.php                                # webGui page code
+ /usr/local/emhttp/plugins/airvideo/event/disks_mounted                         # script to execute for emhttp event
+ /usr/local/emhttp/plugins/airvideo/event/unmounting_disks                      # script to execute for emhttp event
+ /var/log/plugins/airvideo                                                      # created upon install success
+ /usr/local/airvideo                                                            # application installation location
+ /var/run/airvideo/airvideo.pid                                                 # run-time pid file
+
+-->
+
+<FILE Name="/tmp/plugin-prepare" Run="/bin/bash">
+<INLINE>
+# Wait until network is ready
+timer=30
+while [ $timer -gt 0 ]; do
+  gateway=$(route -n | awk '/^0.0.0.0/ {print $2}')
+  if [ -n "$gateway" ] &amp;&amp; [ $(ping -q -n -c 1 $gateway | awk -F, '/received/ {print $2}' | awk '{print $1}') -eq 1 ]; then
+    break
+  fi
+  timer=$((timer-1))
+  sleep 1
+done
+if [ $timer -eq 0 ]; then
+  echo "No network communication !!!"
+fi
+# Remove this script
+rm -f /tmp/plugin-prepare
+</INLINE>
+</FILE>
+
+<FILE Name="&plg;/airvideo.png">
+<URL>-q --no-check-certificate &url2;/plugin.images/airvideo.png</URL>
+</FILE>
+
+<FILE Name="&img;/device_status.png">
+<URL>-q --no-check-certificate &url2;/plugin.images/device_status.png</URL>
+</FILE>
+
+<FILE Name="&img;/new_config.png">
+<URL>-q --no-check-certificate &url2;/plugin.images/new_config.png</URL>
+</FILE>
+
+<FILE Name="&img;/information.png">
+<URL>-q --no-check-certificate &url2;/plugin.images/information.png</URL>
+</FILE>
+
+<FILE Name="&plg;/AirVideoServerLinux.jar">
+<URL>&url3;/AirVideoServerLinux.jar</URL>
+</FILE>
+
+<FILE Name="&pkg;/mpeg4ip-1.5.0.1-i486-1ahl.tgz" Run="upgradepkg --install-new">
+<URL>-q --no-check-certificate &url2;/packages.generic/mpeg4ip-1.5.0.1-i486-1ahl.tgz</URL>
+</FILE>
+
+<FILE Name="&pkg;/libmp4v2-1.9.1-i486-3_cngu.tgz" Run="upgradepkg --install-new">
+<URL>-q --no-check-certificate &url2;/packages.generic/libmp4v2-1.9.1-i486-3_cngu.tgz</URL>
+</FILE>
+
+<FILE Name="&pkg;/lame-3.99-i486-1sl.txz" Run="upgradepkg --install-new">
+<URL>-q --no-check-certificate &url2;/packages.generic/lame-3.99-i486-1sl.txz</URL>
+</FILE>
+
+<FILE Name="&pkg;/alsa-lib-1.0.25-i486-1.txz" Run="upgradepkg --install-new">
+<URL>-q --no-check-certificate &url2;/packages.generic/alsa-lib-1.0.25-i486-1.txz</URL>
+</FILE>
+
+<FILE Name="&pkg;/faac-1.28-i486-5sl.txz" Run="upgradepkg --install-new">
+<URL>-q --no-check-certificate &url2;/packages.generic/faac-1.28-i486-5sl.txz</URL>
+</FILE>
+
+<FILE Name="&pkg;/jre-7u2-i586.txz" Run="upgradepkg --install-new">
+<URL>-q --no-check-certificate &url2;/packages.generic/jre-7u2-i586.txz</URL>
+</FILE>
+
+<FILE Name="&pkg;/libav-i486-rj.txz" Run="upgradepkg --install-new">
+<URL>-q --no-check-certificate &url2;/packages.custom/libav-i486-rj.txz</URL>
+</FILE>
+
+<FILE Name="&pkg;/x264-snapshot-20120727-2245-stable-i486-rj.tgz" Run="upgradepkg --install-new">
+<URL>-q --no-check-certificate &url2;/packages.custom/x264-snapshot-20120727-2245-stable-i486-rj.tgz</URL>
+</FILE>
+
+<FILE Name="/tmp/plugin-cleanup" Run="/bin/bash">
+<INLINE>
+# delete file but don't warn if file does not exist 
+rmNoWarn() {
+  test -e $1 &amp;&amp; rm $1 2>/dev/null
+}
+
+# delete directory but don't warn if directory does not exist 
+rmRecursiveNoWarn() {
+  test -e $1 &amp;&amp; rm -r $1 2>/dev/null
+}
+
+#Remove currently installed plugin files
+rmNoWarn /etc/rc.d/rc.airvideo                           # control script
+rmNoWarn /var/run/airvideo/airvideo.pid                  # stale pid file
+rmRecursiveNoWarn /usr/local/emhttp/plugins/airvideo     # airvideo unraid webgui integration files
+rmNoWarn /var/log/plugins/airvideo                       # record of previous plugin installation
+
+rm /tmp/plugin-cleanup
+</INLINE>
+</FILE>
+
+<FILE Name="/boot/config/plugins/airvideo/airvideo.cfg">
+<INLINE>
+<![CDATA[
+# airvideo configuration
+SERVICE="disable"
+PORT="45631"
+INSTALLDIR="/usr/local/airvideo"
+SUBENC="windows-1250"
+SUBFONT="Verdana"
+AIR_PASS="password"
+AIR_DIRS="Movies:/mnt/user/Movies,TV:/mnt/user/TV"
+LOGGING="disable"
+]]>
+</INLINE>
+</FILE>
+
+<FILE Name="/tmp/plugin-chkcfg" Run="/bin/bash">
+<INLINE>
+<![CDATA[
+#!/bin/bash
+paramchk=$(cat /boot/config/plugins/airvideo/airvideo.cfg | grep PORT)
+if [[ $paramchk = "" ]]; then
+    echo "" >> /boot/config/plugins/airvideo/airvideo.cfg
+    echo "PORT=\"45631\"" >> /boot/config/plugins/airvideo/airvideo.cfg
+fi
+
+rm /tmp/plugin-chkcfg
+]]>
+</INLINE>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/airvideo/airvideo.png">
+<LOCAL>/boot/config/plugins/airvideo/airvideo.png</LOCAL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/airvideo/device_status.png">
+<LOCAL>/boot/config/plugins/images/device_status.png</LOCAL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/airvideo/new_config.png">
+<LOCAL>/boot/config/plugins/images/new_config.png</LOCAL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/airvideo/information.png">
+<LOCAL>/boot/config/plugins/images/information.png</LOCAL>
+</FILE>
+
+<FILE Name="/etc/rc.d/rc.airvideo" Mode="0770">
+<INLINE>
+<![CDATA[
+#!/bin/bash
+# start|stop|restart|enable|disable|install|buttonstart|datacheck|updateplg|getver
+
+airvideo_start()
+{
+  # no-op if not enabled
+  if [ $SERVICE != "enable" ]; then
+    return
+  fi
+
+  # no-op if already running
+  if [ -f /var/run/airvideo/airvideo.pid ]; then
+    return
+  fi
+
+  # if not installed yet, call install function
+  if [[ ! -f "$INSTALLDIR/AirVideoServerLinux.jar" ]]; then
+    airvideo_install
+  fi
+
+  LC_ALL=en_US.UTF-8
+  export LC_ALL
+  
+  CMDLINE="/usr/lib/java/bin/java -Djava.awt.headless=true -jar $INSTALLDIR/AirVideoServerLinux.jar $INSTALLDIR/air-video-server.properties > /dev/null 2>&1"
+
+  # start process with/without logging based on config flag
+  if [ $LOGGING != "enable" ]; then
+    #start without logging
+    nohup $CMDLINE > /dev/null 2>&1 &
+  else
+    #start with logging
+    nohup $CMDLINE > /var/log/plugins/airvideo.out 2>&1 &
+  fi
+  
+  PID=$(ps -ef | grep AirVideo | grep -v grep | awk '{print $2}');
+  test "$PID" != "" && echo $PID > /var/run/airvideo/airvideo.pid  
+}
+
+airvideo_stop()
+{
+  # no-op if already stopped
+  if [ ! -f /var/run/airvideo/airvideo.pid ]; then
+    return
+  fi
+
+  #clean up a debug log if there is one
+  rm -f /var/log/plugins/airvideo.out 2>/dev/null  
+  
+  #kill airvideo process
+  kill -9 $(cat /var/run/airvideo/airvideo.pid)
+
+  # remove copy of pid created during start
+  rm -f /var/run/airvideo/airvideo.pid
+}
+
+airvideo_restart()
+{
+  airvideo_stop
+  airvideo_start
+}
+
+airvideo_buttonstart()
+{
+  CONFIG="/boot/config/plugins/airvideo/airvideo.cfg"
+  if [ -f $CONFIG ]; then
+    # a less greedy sed.  only replaces the first occurance of diabled with enabled.  ie. will only hit service line which is (usually) always first in cfg
+    sed -i "0,/"disable"/s/"disable"/"enable/"" $CONFIG 2>/dev/null
+    SERVICE=enable
+    airvideo_start
+  fi
+}
+
+write_config()
+{
+  echo "# airvideo configuration:" > /boot/config/plugins/airvideo/airvideo.cfg
+  echo "SERVICE=\"$SERVICE\"" >> /boot/config/plugins/airvideo/airvideo.cfg
+  echo "PORT=\"$PORT\"" >> /boot/config/plugins/airvideo/airvideo.cfg
+  echo "INSTALLDIR=\"$INSTALLDIR\"" >> /boot/config/plugins/airvideo/airvideo.cfg
+  echo "SUBENC=\"$SUBENC\"" >> /boot/config/plugins/airvideo/airvideo.cfg
+  echo "SUBFONT=\"$SUBFONT\"" >> /boot/config/plugins/airvideo/airvideo.cfg
+  echo "AIR_PASS=\"$AIR_PASS\"" >> /boot/config/plugins/airvideo/airvideo.cfg
+  echo "AIR_DIRS=\"$AIR_DIRS\"" >> /boot/config/plugins/airvideo/airvideo.cfg
+  echo "LOGGING=\"$LOGGING\"" >> /boot/config/plugins/airvideo/airvideo.cfg
+}
+
+airvideo_change_settings()
+{
+  #nb. when passing params from enable/disable functions, params will take new numbering. ie. $2 in enable will become the first ($1) param here, and so on
+  PORT="$1"
+  INSTALLDIR="$2"
+  SUBENC="$3"
+  SUBFONT="$4"
+  AIR_PASS="$5"
+  AIR_DIRS="$6"
+  LOGGING="$7"
+}
+
+airvideo_enable()
+{
+  SERVICE=$1 #enable
+  airvideo_change_settings "$2" "$3" "$4" "$5" "$6" "$7" "$8"
+  write_config
+  airvideo_install
+  airvideo_restart
+}
+
+airvideo_disable()
+{
+  airvideo_stop
+  SERVICE=$1 #disable
+  airvideo_change_settings "$2" "$3" "$4" "$5" "$6" "$7" "$8"
+  write_config
+}
+
+airvideo_install()
+{
+  #create airvideo install directory
+  mkdir -p $INSTALLDIR
+
+  #copy AirVideoServerLinux.jar from plugin directory to target install location
+  cp -f /boot/config/plugins/airvideo/AirVideoServerLinux.jar $INSTALLDIR
+
+  #fix permissions of install directory
+  chown -R nobody:users $INSTALLDIR
+  chmod -R 0755 $INSTALLDIR
+  
+  #create airvideo thumbnail db folder under root dir
+  mkdir -p /root/.air-video-server
+  
+  #update air-video-server.properties file with static vars + password and media file locations as entered by user in webgui
+  echo "path.ffmpeg=/usr/local/bin/avconv" > $INSTALLDIR/air-video-server.properties
+  echo "path.mp4creator=/usr/bin/mp4creator" >> $INSTALLDIR/air-video-server.properties
+  echo "path.faac=/usr/bin/faac" >> $INSTALLDIR/air-video-server.properties
+  echo "server.port=$PORT" >> $INSTALLDIR/air-video-server.properties
+  echo "subtitles.encoding=$SUBENC" >> $INSTALLDIR/air-video-server.properties
+  echo "subtitles.font=$SUBFONT" >> $INSTALLDIR/air-video-server.properties
+  echo "folders=$AIR_DIRS" >> $INSTALLDIR/air-video-server.properties
+  echo "password=$AIR_PASS" >> $INSTALLDIR/air-video-server.properties
+}
+
+airvideo_datacheck()
+{
+  array=( ramfs proc tempfs sysfs )
+  fs=$( stat -f -c '%T' $INSTALLDIR )
+  if [ "$fs" = "msdos" ]; then
+    echo "<p style="color:red\;"><b>WARNING:</b> Your data is located on your flash drive. This can decrease the life span of your flash device!</p>"
+  else
+    for i in "${array[@]}"
+    do
+      if [ $i = $fs ]; then
+        echo "<p style="color:red\;"><b>WARNING:</b> Your data is not persistent and WILL NOT survive a reboot. Please locate data on persistent storage. eg. cache/array disk</p>"
+        break
+      else
+        echo "<p style="color:green\;">Your data will persist after a reboot</p>"
+        break
+      fi
+    done
+  fi
+}
+
+airvideo_updateplg()
+{
+  if [ -f /boot/config/plugins/airvideo_overbyrn.plg ]; then
+    airvideo_stop;
+    echo "Downloading plugin..."
+    wget -q -P /tmp --no-check-certificate https://raw.github.com/overbyrn/UnRAID/master/airvideo_overbyrn.plg 2>/dev/null
+    if [ ! -f /tmp/airvideo_overbyrn.plg ]; then
+      echo "Download failed, update aborted!"
+      sleep 2
+    else
+      echo "...OK"
+      sleep 1
+      echo  "Upgrading plugin..."
+      sleep 1
+      mv -f /boot/config/plugins/airvideo_overbyrn.plg /boot/config/plugins/airvideo/airvideo_overbyrn.plg.sav 2>/dev/null
+      mv -f /tmp/airvideo_overbyrn.plg /boot/config/plugins/airvideo_overbyrn.plg 2>/dev/null
+      /usr/local/sbin/installplg /boot/config/plugins/airvideo_overbyrn.plg 2>/dev/null
+      echo "...OK"
+      sleep 1
+    fi
+    airvideo_start;
+  fi
+}
+
+airvideo_plgver()
+{
+  case "$1" in
+    'local')
+      if [ -f /boot/config/plugins/airvideo_overbyrn.plg ]; then
+        VERSION=$(grep "<\!ENTITY plgver" /boot/config/plugins/airvideo_overbyrn.plg | cut -d\" -f2)
+      else
+        VERSION=Unknown
+      fi        
+    ;;
+    'remote')
+      VERSION=$(wget --no-check-certificate -q https://raw.github.com/overbyrn/UnRAID/master/airvideo_overbyrn.plg -O - | grep "<\!ENTITY plgver" | cut -d\" -f2)
+    ;;
+  esac
+  echo -n "$VERSION"
+}
+
+airvideo_getver()
+{
+  if [[ ! -z $1 ]]; then
+    airvideo_plgver $1
+  else
+    echo "usage $0 getver local|remote"
+  fi
+}
+
+# read our configuration
+source /boot/config/plugins/airvideo/airvideo.cfg
+
+case "$1" in
+  'start')
+    airvideo_start
+  ;;
+  'stop')
+    airvideo_stop
+  ;;
+  'restart')
+    airvideo_restart
+  ;;
+  'enable')
+    airvideo_enable "$1" "$2" "$3" "$4" "$5" "$6" "$7" "$8"
+  ;;
+  'disable')
+    airvideo_disable "$1" "$2" "$3" "$4" "$5" "$6" "$7" "$8"
+  ;;
+  'install')
+    airvideo_install
+  ;;
+  'buttonstart')
+    airvideo_buttonstart
+  ;;
+  'datacheck')
+    airvideo_datacheck
+  ;;
+  'updateplg')
+    airvideo_updateplg
+  ;;
+  'getver')
+    airvideo_getver $2 $3
+    ;;
+  *)
+    echo "usage $0 start|stop|restart|enable|disable|install|buttonstart|datacheck|updateplg|getver"
+esac
+]]>
+</INLINE>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/airvideo/airvideo.php">
+<INLINE>
+<![CDATA[
+<?PHP
+$airvideo_cfg = parse_ini_file( "/boot/config/plugins/airvideo/airvideo.cfg");
+$airvideo_installed = is_dir( $airvideo_cfg['INSTALLDIR'] ) ? "yes" : "no";
+$airvideo_localplg = shell_exec("/etc/rc.d/rc.airvideo getver local");
+$airvideo_remoteplg = shell_exec("/etc/rc.d/rc.airvideo getver remote");
+$airvideo_logging = ($airvideo_cfg['LOGGING'] == "enable") ? "yes" : "no";
+if ($airvideo_installed=="yes") {
+  $airvideo_running = file_exists( "/var/run/airvideo/airvideo.pid" ) ? "yes" : "no";
+}
+$controls_exist = "false";
+$updates_exist = "false";
+?>
+
+<html>
+<head></head>
+<body>
+
+<div style="width: 49%; float:left; border: 0px solid black;">
+  <div id="title">
+    <span class="left">Status:&nbsp;<img src='/plugins/airvideo/device_status.png'>
+      <?if ($airvideo_running=="yes"):?>
+        <?if (($airvideo_logging=="yes") && (file_exists("/var/log/plugins/airvideo.out"))): ?>
+          <span class="green">
+            <a href="http://<?=$var['NAME'];?>:<?=$airvideo_cfg['PORT'];?>" style="color: green; text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'" target="_blank"><span class="green"><b>AirVideo is RUNNING on port <?=$airvideo_cfg['PORT'];?></b></span></a>
+            <a href="/update.htm?cmd=/usr/bin/tail%20-n%2080%20-f%20/var/log/plugins/airvideo.out&forkCmd=Start" style="color: green; text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'" target="_blank"><span class="green"><b>[Debug Log]</b></span></a>
+          </span>
+        <?else:?>
+          <span class="green">
+            <a href="http://<?=$var['NAME'];?>:<?=$airvideo_cfg['PORT'];?>" style="color: green; text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'" target="_blank">
+            <span class="green"><b>AirVideo is RUNNING on port <?=$airvideo_cfg['PORT'];?></b></span></a>
+          </span>
+        <?endif;?>
+      <?else:?>
+        <span class="red"><b>NOT RUNNING</b></span>
+      <?endif;?>      
+    </span>
+  </div>
+  
+  <? if ($airvideo_installed=="yes"): ?>
+    <div style="border: 0px solid black;">
+      <span class="left">
+        <?=$airvideo_datacheck?>
+      </span>
+    </div>  
+  <?endif;?>   
+       
+  <br>
+  
+  <div style="border: 0px solid black;">
+    <table>
+      <tr style="font-weight:bold; color:#333333; background:#F0F0F0; text-shadow:0 1px 1px #FFFFFF;">
+        <td>Package/Plugin</td>
+        <td>Local Version</td>
+        <td>Online Version</td>
+      </tr>
+
+      <tr style="font-weight:bold; background:#FFFFFF;">
+        <td>AirVideo Plugin</td>
+        <td>
+          <?if ($airvideo_localplg != "Unknown"):?>
+              <span class="green-text"><?=$airvideo_localplg?></span>
+          <?else:?>
+            <span class="red-text">UNKNOWN</span>
+          <?endif;?>
+        </td>
+        <td>
+          <?if ($airvideo_remoteplg != "Unknown"):?>
+              <span class="green-text"><?=$airvideo_remoteplg?></span>
+          <?else:?>
+            <span class="red-text">UNKNOWN</span>
+          <?endif;?>
+        </td>
+      </tr>      
+    </table>
+  </div>  
+
+  <br></br>
+  
+  <div>
+    <table>
+      <tr style="font-weight:bold; color:#333333; background:#F0F0F0; text-shadow:0 1px 1px #FFFFFF;">
+        <td colspan="2">Control</td>
+      </tr>    
+    <?if ($airvideo_installed=="yes"):?>
+      <?if ($airvideo_running=="yes"):?>
+        <tr>
+        <td width="30%">
+          <form name="airvideo_start_stop" method="POST" action="/plugins/airvideo/airvideoctl.php" target="progressFrame" onsubmit="return validateForm();">
+            <input type="hidden" name="cmd" value="stop">
+            <input type="submit" name="runCmd" value="Stop">
+          </form>      
+        </td>
+        <td>Stop AirVideo Daemon</td>
+        </tr>
+        <tr>
+        <td width="30%">
+          <form name="airvideo_restart" method="POST" action="/plugins/airvideo/airvideoctl.php" target="progressFrame" onsubmit="return validateForm();">
+            <input type="hidden" name="cmd" value="restart">
+            <input type="submit" name="runCmd" value="Restart">
+          </form>  
+        </td>
+        <td>Restart AirVideo Daemon</td>
+        </tr>
+        <?$controls_exist = "true"?>
+      <?else:?>
+        <tr>
+        <td width="30%">
+          <form name="airvideo_start" method="POST" action="/plugins/airvideo/airvideoctl.php" target="progressFrame" onsubmit="return validateForm();">
+            <input type="hidden" name="cmd" value="buttonstart">
+            <input type="submit" name="runCmd" value="Start">
+          </form>
+        </td>
+        <td>Start AirVideo Daemon</td>
+        </tr>
+        <?$controls_exist = "true"?>
+      <?endif;?>
+    <?else:?>
+      <tr>
+      <td width="30%">
+        <form name="airvideo_install" method="POST" action="/plugins/airvideo/airvideoctl.php" target="progressFrame" onsubmit="return validateForm();">
+          <input type="hidden" name="cmd" value="install">
+          <input type="submit" name="runCmd" value="Install">
+        </form>
+      </td>
+      <td>Install AirVideo Application</td>
+      </tr>
+      <?$controls_exist = "true"?>
+    <?endif;?>
+      
+    <?if ($controls_exist=="false"):?>
+      <tr>
+        <td colspan="2" align="center">No Control Actions available</td>
+      </tr>
+    <?endif;?>
+    </table>
+  </div>  
+  <br></br> 
+  <div style="border: 0px solid black;">
+    <table>
+      <tr style="font-weight:bold; color:#333333; background:#F0F0F0; text-shadow:0 1px 1px #FFFFFF;">
+        <td colspan="2">Updates</td>
+      </tr>
+      <?if (($airvideo_remoteplg != $airvideo_localplg) && ($airvideo_localplg != "Unknown") && ($airvideo_remoteplg != "Unknown")): ?>
+        <tr>
+        <td width="30%">
+          <form name="airvideo_updateplg" method="POST" action="/plugins/airvideo/airvideoctl.php" target="progressFrame" onsubmit="return validateForm();">
+            <input type="hidden" name="cmd" value="updateplg">
+            <input type="submit" name="runCmd" value="Update Plugin">
+          </form>
+        </td>
+          <td>An update is available to the plugin</td>
+        </tr>
+        <?$updates_exist="true"?>
+      <?endif;?>
+
+      <?if ($updates_exist=="false"):?>
+        <tr>
+          <td colspan="2" align="center">No updates available at this time</td>
+        </tr>
+      <?endif;?>
+    </table>
+  </div>
+  <br></br>
+  <br></br>
+</div>
+
+<div style="width: 49%; float:right; border: 0px solid black;">
+  <div id="title">
+    <span class="left">Configuration:&nbsp;<img src='/plugins/airvideo/new_config.png'></span>
+  </div>
+    <form name="airvideo_settings" method="POST" action="/plugins/airvideo/airvideoctl.php" target="progressFrame" onsubmit="return validateForm();">
+    <input type="hidden" name="cmd" value="apply">
+      <table class="settings">
+         <tr>
+         <td>Enable AirVideo:</td>
+         <td><select name="SERVICE" size="1"  onChange="checkRUNNING(this.form);">
+            <?=mk_option($airvideo_cfg['SERVICE'], "disable", "No");?>
+            <?=mk_option($airvideo_cfg['SERVICE'], "enable", "Yes");?>
+            </select></td>
+         </tr>
+         <tr>
+         <td>Install Directory:</td>
+         <td><input type="text" name="INSTALLDIR" value="<?=$airvideo_cfg['INSTALLDIR'];?>"></td>
+         </tr>
+         <tr>
+         <td>Port:</td>
+         <td><input type="text" name="PORT" value="<?=$airvideo_cfg['PORT'];?>"></td>
+         </tr>
+         <tr>
+         <td>Subtitle Encoding:</td>
+         <td><input type="text" name="SUBENC" value="<?=$airvideo_cfg['SUBENC'];?>"></td>
+         </tr>
+         <tr>
+         <td>Subtitle Font:</td>
+         <td><input type="text" name="SUBFONT" value="<?=$airvideo_cfg['SUBFONT'];?>"></td>
+         </tr>         
+         <tr>
+         <td>AirVideo Password:</td>
+         <td><input type="text" name="AIR_PASS" value="<?=$airvideo_cfg['AIR_PASS'];?>"></td>
+         </tr>
+         <tr>
+         <td>AirVideo File Locations:</td>
+         <td><input type="text" name="AIR_DIRS" value="<?=$airvideo_cfg['AIR_DIRS'];?>"></td>
+         </tr>
+         <tr>
+         <td>AirVideo Debug Log:</td>
+         <td><select name="LOGGING" size="1"  onChange="checkRUNNING(this.form);">
+            <?=mk_option($airvideo_cfg['LOGGING'], "disable", "No");?>
+            <?=mk_option($airvideo_cfg['LOGGING'], "enable", "Yes");?>
+            </select></td>
+         </tr>
+      </table>
+    <div align="center">
+      <hr size="3" align="center" width="75%" color="grey" style="margin-top:20px;margin-bottom:18px">
+      <input type="submit" name="runCmd" value="Apply"><button type="button" onClick="done();">Done</button>
+    </div>
+  </form>
+  <br />
+</div>
+
+<script type="text/javascript">
+function checkRUNNING(form)
+{
+   if ("<?=$airvideo_running;?>" == "yes") {
+    form.INSTALLDIR.disabled = true;
+    form.PORT.disabled = true;
+    form.SUBENC.disabled = true;
+    form.SUBFONT.disabled = true;
+    form.AIR_PASS.disabled = true;
+    form.AIR_DIRS.disabled = true;
+    form.LOGGING.disabled = true;
+   }
+}
+
+function validateForm()
+{
+  document.forms["airvideo_settings"]["INSTALLDIR"].disabled = false;
+  document.forms["airvideo_settings"]["PORT"].disabled = false;
+  document.forms["airvideo_settings"]["SUBENC"].disabled = false;
+  document.forms["airvideo_settings"]["SUBFONT"].disabled = false;
+  document.forms["airvideo_settings"]["AIR_PASS"].disabled = false;
+  document.forms["airvideo_settings"]["AIR_DIRS"].disabled = false;
+  document.forms["airvideo_settings"]["LOGGING"].disabled = false;
+}
+
+checkRUNNING(document.airvideo_settings);
+</script>
+
+</body>
+</html>
+]]>
+</INLINE>
+</FILE>
+
+
+<FILE Name="/usr/local/emhttp/plugins/airvideo/airvideoctl.php" Mode="0770">
+<INLINE>
+<![CDATA[
+<?PHP
+  $logfile = "/var/log/plugins/airvideo";
+  $configfile = "/boot/config/plugins/airvideo/airvideo.cfg";
+
+  if (empty($_SERVER['SHELL']))
+    $newline = "<br>";
+  else
+    $newline = "\n";
+
+  $cur_dt = date("F j\, Y h:i:s A");
+  write_log("\nStart: $cur_dt");
+ 
+  $settings = array("SERVICE","INSTALLDIR","PORT","SUBENC","SUBFONT","AIR_PASS","AIR_DIRS","LOGGING",);
+
+  parse_str($argv[1],$_POST);
+
+  $SERVICE=$_POST['SERVICE'];
+  $INSTALLDIR=$_POST['INSTALLDIR'];
+  $PORT=$_POST['PORT'];
+  $SUBENC=$_POST['SUBENC'];
+  $SUBFONT=$_POST['SUBFONT'];
+  $AIR_PASS=$_POST['AIR_PASS'];
+  $AIR_DIRS=$_POST['AIR_DIRS'];
+  $LOGGING=$_POST['LOGGING'];
+  
+  write_log("SERVICE: $SERVICE\nINSTALLDIR: $INSTALLDIR\nPORT: $PORT\nSUBENC: $SUBENC\nSUBFONT: $SUBFONT\nAIR_PASS: $AIR_PASS\nAIR_DIRS: $AIR_DIRS\nLOGGING: $LOGGING");
+
+  switch ($_POST['cmd']) {
+    case 'apply':
+      if ($SERVICE == "enable") {
+        enableairvideo();
+      }
+      else
+        disableairvideo();
+      break;
+    case 'buttonstart':
+      buttonstartairvideo();
+      break;
+    case 'restart':
+      restartairvideo();
+      break;
+    case 'stop':
+      stopairvideo();
+      break;
+    case 'install':
+      installairvideo();
+      break;
+    case 'updateplg':
+      updateairvideo();
+      break;
+    default:
+    break;
+  }
+
+  if (empty($_SERVER['SHELL'])) {
+    echo("<html>");
+    echo("<head><script>var goback=parent.location;</script></head>");
+    echo("<body onLoad=\"parent.location=goback;\"></body>");
+    echo("</html>");
+  }
+  
+  $cur_dt = date("F j\, Y h:i:s A");
+  write_log("\nEnd: $cur_dt");
+  
+  function startairvideo() {
+    global $newline, $log;
+    exec_log("/etc/rc.d/rc.airvideo start");
+  }
+
+  function buttonstartairvideo() {
+    global $newline, $log;
+    exec_log("/etc/rc.d/rc.airvideo buttonstart");
+  }
+
+  function restartairvideo() {
+    global $newline, $log;
+    exec_log("/etc/rc.d/rc.airvideo restart");
+  }
+  
+  function stopairvideo() {
+    global $newline, $log;
+    exec_log("/etc/rc.d/rc.airvideo stop");
+  }
+
+  function installairvideo() {
+    global $newline, $log;
+    exec_log("/etc/rc.d/rc.airvideo install");
+  }
+
+  function updateairvideo() {
+    global $newline, $log;
+    exec_log("/etc/rc.d/rc.airvideo updateplg");
+  }
+  
+  function enableairvideo() {
+    global $newline, $log, $SERVICE, $PORT, $INSTALLDIR, $SUBENC, $SUBFONT, $AIR_PASS, $AIR_DIRS, $LOGGING;
+    if ($AIR_PASS == "") {
+      $AIR_PASS = "\"\"";
+    } 
+    exec_log("/etc/rc.d/rc.airvideo $SERVICE $PORT $INSTALLDIR $SUBENC $SUBFONT \"$AIR_PASS\" \"$AIR_DIRS\" $LOGGING"); 
+  }
+
+  function disableairvideo() {
+    global $newline, $log, $SERVICE, $PORT, $INSTALLDIR, $SUBENC, $SUBFONT, $AIR_PASS, $AIR_DIRS, $LOGGING;
+    if ($AIR_PASS == "") {
+      $AIR_PASS = "\"\"";
+    } 
+    exec_log("/etc/rc.d/rc.airvideo $SERVICE $PORT $INSTALLDIR $SUBENC $SUBFONT \"$AIR_PASS\" \"$AIR_DIRS\" $LOGGING"); 
+  }
+  
+  function exec_log($cmd) {
+    $results = exec($cmd);    
+    $results = "\nCMD: $cmd \nResults: $results";
+    write_log($results);
+  }
+
+  function write_log($contents) {
+    global $logfile;
+    write_string($logfile, "$contents\n", FALSE);
+  }
+    
+  function write_string ($file, $contents, $overwrite) {
+    if (file_exists($file)) {
+      if ($overwrite)
+          unlink($file);
+          touch($file);
+    }
+    else {
+      touch($file);
+    }
+    
+    $fp = @fopen($file, 'a');
+    @flock($fp, LOCK_EX);
+    @fwrite($fp, $contents);
+    @flock($fp, LOCK_UN);
+    @fclose($fp);
+  }
+
+?>
+]]>
+</INLINE>
+</FILE>
+
+<!-- event handler -->
+<FILE Name="/usr/local/emhttp/plugins/airvideo/event/disks_mounted" Mode="0770">
+<INLINE>
+#!/bin/bash
+#load plugin config
+source /boot/config/plugins/airvideo/airvideo.cfg
+#Start airvideo if enabled
+[ $SERVICE = "enable" ] &amp;&amp; /etc/rc.d/rc.airvideo start
+</INLINE>
+</FILE>
+
+<!-- event handler -->
+<FILE Name="/usr/local/emhttp/plugins/airvideo/event/unmounting_disks" Mode="0770">
+<INLINE>
+#!/bin/bash
+/etc/rc.d/rc.airvideo stop
+</INLINE>
+</FILE>
+
+<FILE Name="/tmp/plugin-install" Run="/bin/bash">
+<INLINE>
+#!/bin/bash
+# create airvideo-writable directory for pid file
+[ ! -e /var/run/airvideo ] &amp;&amp; mkdir -m 0777 /var/run/airvideo 2>/dev/null
+
+#set ownership and permission of airvideo binaries to nobody
+chown -R nobody:users /usr/local/airvideo 2>/dev/null
+chmod -R 770 /usr/local/airvideo 2>/dev/null
+
+rm /tmp/plugin-install
+</INLINE>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/airvideo/airvideo.page">
+<INLINE>
+Menu="NetworkServices"
+Icon="airvideo.png"
+Version=&plgver;
+Author=&author;
+Type="php"
+Title=&plugin;
+</INLINE>
+</FILE>
+
+<FILE Name="/var/log/plugins/airvideo">
+<INLINE>
+&plugin; v&plgver;
+</INLINE>
+</FILE>
+
+<FILE Name="/tmp/plugin-development" Run="/bin/bash">
+<INLINE>
+#!/bin/bash
+if [ "&dev;" == "true" ]; then
+  if [ -f /boot/config/plugins/airvideo.php ]; then
+    rm -f &gui;/airvideo/airvideo.php
+    ln -s /boot/config/plugins/airvideo.php &gui;/airvideo/airvideo.php
+  else
+    mv &gui;/airvideo/airvideo.php /boot/config/plugins/airvideo.php
+    ln -s /boot/config/plugins/airvideo.php &gui;/airvideo/airvideo.php
+  fi
+  if [ -f /boot/config/plugins/airvideoctl.php ]; then
+    rm -f &gui;/airvideo/airvideoctl.php
+    ln -s /boot/config/plugins/airvideoctl.php &gui;/airvideo/airvideoctl.php
+  else
+    mv &gui;/airvideo/airvideoctl.php /boot/config/plugins/airvideoctl.php
+    ln -s /boot/config/plugins/airvideoctl.php &gui;/airvideo/airvideoctl.php
+  fi
+  if [ -f /boot/config/plugins/rc.airvideo ]; then
+    rm -f /etc/rc.d/rc.airvideo
+    ln -s /boot/config/plugins/rc.airvideo /etc/rc.d/rc.airvideo
+  else
+    mv /etc/rc.d/rc.airvideo /boot/config/plugins/rc.airvideo
+    ln -s /boot/config/plugins/rc.airvideo /etc/rc.d/rc.airvideo
+  fi
+fi
+
+rm /tmp/plugin-development
+</INLINE>
+</FILE>
+
+</PLUGIN>
