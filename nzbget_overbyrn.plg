@@ -1,0 +1,914 @@
+<?xml version='1.0' standalone='yes'?>
+
+<!DOCTYPE PLUGIN [
+<!ENTITY plugin "NZBget">
+<!ENTITY author "overbyrn">
+<!ENTITY plgver "1.5">
+<!ENTITY pkg "/boot/packages">
+<!ENTITY plg "/boot/config/plugins/nzbget">
+<!ENTITY img "/boot/config/plugins/images">
+<!ENTITY gui "/usr/local/emhttp/plugins">
+<!ENTITY url1 "https://raw.github.com/overbyrn/UnRAID/master">
+<!ENTITY url2 "https://dl.dropbox.com/u/572553/UnRAID">
+<!ENTITY dev "false"><!-- set to "true" during plugin development -->
+]>
+
+<PLUGIN>
+<!--
+Copyright 2013, Rich Manton (overbyrn)
+
+This Plugin installs and provides nzbget support for unRAID.
+
+Plugin file locations:
+ /boot/plugins/nzbget_overbyrn.plg                                              # this file
+ /tmp/plugin-prepare                                                            # network readiness script
+ /tmp/plugin-chkcfg                                                             # plugin upgrade check script
+ /tmp/plugin-cleanup                                                            # deletion script
+ /tmp/plugin-install                                                            # installation script
+ 
+ /boot/config/plugins/nzbget/nzbget-{branch}_{ver}{rev}.txz                     # source code
+ /boot/config/plugins/nzbget/libpar2-0.2-i486-1rj.tgz                           # source code (incl. nzbget patches)
+ 
+ /boot/packages/libsigc++-2.2.10-i486-2alien.tgz                                # package dependency (par-check & repair)
+ /boot/packages/unrar-4.2.4-i486-1alien.tgz                                     # package dependency (rar support)
+ 
+ /boot/config/plugins/nzbget/nzbget.png                                         # icon file (copied to webgui plugin dir)
+ /boot/config/plugins/images/device_status.png                                  # icon file (copied to webgui plugin dir)
+ /boot/config/plugins/images/new_config.png                                     # icon file (copied to webgui plugin dir)
+ /boot/config/plugins/images/information.png                                    # icon file (copied to webgui plugin dir)
+ 
+ /boot/config/plugins/nzbget/nzbget.cfg                                         # non-volatile configuration
+ /etc/rc.d/rc.nzbget                                                            # plugin control script
+ /usr/local/emhttp/plugins/nzbget/nzbget.page                                   # page file for webGui menu system
+ /usr/local/emhttp/plugins/nzbget/nzbget.php                                    # webGui page code
+ /usr/local/emhttp/plugins/nzbget/event/disks_mounted                           # script to execute for emhttp event
+ /usr/local/emhttp/plugins/nzbget/event/unmounting_disks                        # script to execute for emhttp event
+ 
+ /var/log/plugins/nzbget                                                        # created upon install success
+ /usr/local/nzbget                                                              # application installation location
+ /var/run/nzbget/nzbget.pid                                                     # run-time pid file
+
+-->
+
+<FILE Name="/tmp/plugin-prepare" Run="/bin/bash">
+<INLINE>
+# Wait until network is ready
+timer=30
+while [ $timer -gt 0 ]; do
+  gateway=$(route -n | awk '/^0.0.0.0/ {print $2}')
+  if [ -n "$gateway" ] &amp;&amp; [ $(ping -q -n -c 1 $gateway | awk -F, '/received/ {print $2}' | awk '{print $1}') -eq 1 ]; then
+    break
+  fi
+  timer=$((timer-1))
+  sleep 1
+done
+if [ $timer -eq 0 ]; then
+  echo "No network communication !!!"
+fi
+# Remove this script
+rm -f /tmp/plugin-prepare
+</INLINE>
+</FILE>
+
+<FILE Name="&plg;/nzbget.png">
+<URL>-q --no-check-certificate &url2;/plugin.images/nzbget.png</URL>
+</FILE>
+
+<FILE Name="&img;/device_status.png">
+<URL>-q --no-check-certificate &url2;/plugin.images/device_status.png</URL>
+</FILE>
+
+<FILE Name="&img;/new_config.png">
+<URL>-q --no-check-certificate &url2;/plugin.images/new_config.png</URL>
+</FILE>
+
+<FILE Name="&img;/information.png">
+<URL>-q --no-check-certificate &url2;/plugin.images/information.png</URL>
+</FILE>
+
+<FILE Name="&pkg;/libsigc++-2.2.7-i486-1gsb.txz" Run="upgradepkg --install-new">
+<URL>-q --no-check-certificate &url2;/packages.generic/libsigc++-2.2.7-i486-1gsb.txz</URL>
+</FILE>
+
+<FILE Name="&pkg;/unrar-4.2.4-i486-1alien.tgz" Run="upgradepkg --install-new">
+<URL>-q --no-check-certificate &url2;/packages.generic/unrar-4.2.4-i486-1alien.tgz</URL>
+</FILE>
+
+<FILE Name="&pkg;/p7zip-9.20.1-i486-1alien.tgz" Run="upgradepkg --install-new">
+<URL>-q --no-check-certificate &url2;/packages.generic/p7zip-9.20.1-i486-1alien.tgz</URL>
+</FILE>
+
+<FILE Name="&plg;/libpar2-0.2-i486-1rj.tgz" Run="upgradepkg --install-new">
+<URL>-q --no-check-certificate &url2;/packages.custom/libpar2-0.2-i486-1rj.tgz</URL>
+</FILE>
+
+<FILE Name="/tmp/plugin-cleanup" Run="/bin/bash">
+<INLINE>
+# delete file but don't warn if file does not exist
+rmNoWarn() {
+  test -e $1 &amp;&amp; rm $1 2>/dev/null
+}
+
+# delete directory but don't warn if directory does not exist
+rmRecursiveNoWarn() {
+  test -e $1 &amp;&amp; rm -r $1 2>/dev/null
+}
+
+#Remove currently installed plugin files
+rmNoWarn /etc/rc.d/rc.nzbget                             # control script
+rmNoWarn /var/run/nzbget/nzbget.pid                      # stale pid file
+rmRecursiveNoWarn /usr/local/emhttp/plugins/nzbget       # nzbget unraid webgui integration files
+rmNoWarn /var/log/plugins/nzbget                         # record of previous plugin installation
+
+rm /tmp/plugin-cleanup
+</INLINE>
+</FILE>
+
+<FILE Name="/boot/config/plugins/nzbget/nzbget.cfg">
+<INLINE>
+# nzbget configuration:
+SERVICE="disable"
+INSTALLDIR="/mnt/disk1/nzbget"
+PORT="50000"
+BRANCH="stable"
+</INLINE>
+</FILE>
+
+<FILE Name="/tmp/plugin-chkcfg" Run="/bin/bash">
+<INLINE>
+<![CDATA[
+#!/bin/bash
+#prepare to switch to enhanced app_ver.txt file by adding stable/testing branch parameter
+paramchk=$(cat /boot/config/plugins/nzbget/nzbget.cfg | grep BRANCH)
+if [[ $paramchk = "" ]]; then
+    echo "" >> /boot/config/plugins/nzbget/nzbget.cfg
+    echo "BRANCH=\"stable\"" >> /boot/config/plugins/nzbget/nzbget.cfg
+fi
+
+rm /tmp/plugin-chkcfg
+]]>
+</INLINE>
+</FILE>
+
+
+<FILE Name="/etc/rc.d/rc.nzbget" Mode="0770">
+<INLINE>
+<![CDATA[
+#!/bin/bash
+# start|stop|restart|enable|disable|install|buttonstart|storagesize|datacheck|updateplg|updateapp|getver
+
+nzbget_start()
+{
+  # no-op if not enabled
+  if [ $SERVICE != "enable" ]; then
+    echo "Service is not enabled!"
+    sleep 1
+    return
+  fi
+
+  # no-op if already running
+  if [ -f /var/run/nzbget/nzbget.pid ]; then
+    echo "NZBGet daemon already running!"
+    sleep 1
+    return
+  fi
+
+  # if not installed yet, call install function
+  if [[ ! -f "$INSTALLDIR/nzbget.conf" ]]; then
+    nzbget_install
+  fi
+
+  echo "Starting NZBGet..."
+  sleep 1
+
+  sudo -u nobody /usr/local/nzbget/nzbget -D -c $INSTALLDIR/nzbget.conf &> /dev/null
+
+  PID=$(ps -ef | grep nzbget | grep -v grep | awk '{print $2}');
+  test "$PID" != "" && echo $PID > /var/run/nzbget/nzbget.pid
+
+  echo "... OK"
+  sleep 1
+}
+
+nzbget_stop()
+{
+  # no-op if already stopped
+  if [ ! -f /var/run/nzbget/nzbget.pid ]; then
+    return
+  fi
+
+  echo "Stopping NZBGet..."
+  sleep 1
+
+  #kill -9 `cat /var/run/nzbget/nzbget.pid`
+  /usr/local/nzbget/nzbget -Q -c $INSTALLDIR/nzbget.conf
+
+  # remove copy of pid created during start
+  rm -f /var/run/nzbget/nzbget.pid
+
+  echo "... OK"
+  sleep 1
+}
+
+nzbget_restart()
+{
+  nzbget_stop
+  nzbget_start
+}
+
+nzbget_buttonstart()
+{
+  CONFIG="/boot/config/plugins/nzbget/nzbget.cfg"
+  if [ -f $CONFIG ]; then
+    # a less greedy sed.  only replaces the first occurance of diabled with enabled.  ie. will only hit service line which is (usually) always first in cfg
+	sed -i "0,/"disable"/s/"disable"/"enable/"" $CONFIG 2>/dev/null
+    SERVICE=enable
+    nzbget_start
+  fi
+}
+
+write_config()
+{
+  echo "# nzbget configuration:" > /boot/config/plugins/nzbget/nzbget.cfg
+  echo "SERVICE=\"$SERVICE\"" >> /boot/config/plugins/nzbget/nzbget.cfg
+  echo "PORT=\"$PORT\"" >> /boot/config/plugins/nzbget/nzbget.cfg
+  echo "INSTALLDIR=\"$INSTALLDIR\"" >> /boot/config/plugins/nzbget/nzbget.cfg
+  echo "BRANCH=\"$BRANCH\"" >> /boot/config/plugins/nzbget/nzbget.cfg
+}
+
+nzbget_change_settings()
+{
+  #nb. when passing params from enable/disable functions, params will take new numbering. ie. $2 in enable will become the first ($1) param here, and so on
+  PORT="$1"
+  INSTALLDIR="$2"
+  BRANCH="$3"
+}
+
+nzbget_enable()
+{
+  echo "Applying Settings ($1) ..."
+  sleep 2
+  SERVICE=$1 #enable
+  nzbget_change_settings $2 $3 $4
+  write_config
+  nzbget_install
+  nzbget_restart
+  echo "... OK"
+  sleep 1
+}
+
+nzbget_disable()
+{
+  echo "Applying Settings ($1) ..."
+  sleep 2
+  nzbget_stop
+  SERVICE=$1 #disable
+  nzbget_change_settings $2 $3 $4
+  write_config
+  echo "... OK"
+  sleep 1
+}
+
+nzbget_install()
+{
+  echo "Installing NZBGet..."
+  sleep 1
+
+  # Create the users chosen application installation dir if not already in existance.  
+  # Accounts for when the user chooses a location from within the plugin web-gui settings page that does not exist on disk.
+  if [ ! -d "$INSTALLDIR" ]; then
+    mkdir "$INSTALLDIR" 2>/dev/null
+    chmod 777 "$INSTALLDIR"
+    chown nobody:users "$INSTALLDIR"
+  fi
+  
+  # create user copy of template nzbget.conf
+  cp -p /usr/local/nzbget/nzbget.conf $INSTALLDIR/nzbget.conf 2>/dev/null  
+  
+  # up to nzbget version 10.2, post-processing was controlled by files nzbget-postprocess.sh & nzbget-postprocess.conf
+  # as of nzbget version 11.0-testing, post-processing has been redesigned and new subdirectory ppscripts bundled at /usr/local/nzbget/ppscripts
+  # during install, perform a check to see if the user has;
+  # a) nzbget-postprocess.sh / nzbget-postprocess.conf in $INSTALLDIR dir, if so do NOT overwrite with template. If missing, copy over template
+  # files if found.  ie. assume user is running 10.x stable
+  # b) check for presence of $INSTALLDIR/ppscripts directory, if found do NOT overwrite.  If missing, copy over ppscripts directory from installation.
+  # ie. assume user is running > v10.x testing branch.
+  
+  if [ ! -f $INSTALLDIR/nzbget-postprocess.sh ]; then
+    cp -p /usr/local/nzbget/nzbget-postprocess.sh /usr/local/nzbget/nzbget-postprocess.conf $INSTALLDIR 2>/dev/null
+  fi
+  
+  if [ -d /usr/local/nzbget/ppscripts ]; then
+    if [ ! -d $INSTALLDIR/ppscripts ]; then
+      mkdir $INSTALLDIR/ppscripts 2>/dev/null
+      chown -R nobody:users $INSTALLDIR/ppscripts 2>/dev/null
+      chmod -R 777 $INSTALLDIR/ppscripts 2>/dev/null
+      cp -pR /usr/local/nzbget/ppscripts $INSTALLDIR 2>/dev/null
+    fi
+  fi  
+
+  #update nzbget.conf with installation specific values.  eg MainDir, post-processing script location, default password
+  sed -i 's#ControlPort=.*#ControlPort='$PORT'#' $INSTALLDIR/nzbget.conf 2>/dev/null
+  sed -i 's#ControlPassword=.*#ControlPassword=password#' $INSTALLDIR/nzbget.conf 2>/dev/null
+  sed -i 's#MainDir=.*#MainDir='$INSTALLDIR'#' $INSTALLDIR/nzbget.conf 2>/dev/null  
+  sed -i 's#DaemonUserName=.*#DaemonUserName=nobody#' $INSTALLDIR/nzbget.conf 2>/dev/null
+  #fix: remove extra slash in webui path. needed due to way binary is built/packaged.  revisit this at later date.  its a static location so should never be an issue
+  sed -i 's#WebDir=.*#WebDir=/usr/local/nzbget/webui#' $INSTALLDIR/nzbget.conf 2>/dev/null
+
+  echo "... OK"
+  sleep 1
+}
+
+nzbget_storagesize()
+{
+  if [ $1 ] && [ $2 ]; then
+    if [ -d $1 ]; then
+      INST=`du -sh $1 | cut -f1`
+    elif [ -f $1 ]; then
+      INST=`ls -lah $1 | awk '{ print $5}'`
+    fi
+
+    if [ -d $2 ]; then
+      DAT=`du -sh $2 | cut -f1`
+    elif [ -f $2 ]; then
+      DAT=`ls -lah $2 | awk '{ print $5}'`
+    fi
+
+    if [ $1 == $2 ]; then
+	  echo "<p>Storage memory usage: install + data directory: <span class="green-text"><b>$INST</b></span></p>"
+    else
+	  echo "<p>Storage memory usage: install directory: <span class="green-text"><b>$INST</b></span></p>"
+    fi
+  elif [ $1 ]; then
+    if [ -d $1 ]; then
+      INST=`du -sh $1 | cut -f1`
+    elif [ -f $1 ]; then
+      INST=`ls -lah $1 | awk '{ print $5}'`
+    fi
+	echo "<p>NZBGet Storage Usage: <span class="green-text"><b>$INST</b></span></p>"
+  fi
+}
+
+nzbget_datacheck()
+{
+  array=( ramfs proc tempfs sysfs )
+  fs=$( stat -f -c '%T' $INSTALLDIR )
+  if [ "$fs" = "msdos" ]; then
+    echo "<p style="color:red\;"><b>WARNING:</b> Your data is located on your flash drive. This can decrease the life span of your flash device!</p>"
+  else
+    for i in "${array[@]}"
+    do
+      if [ $i = $fs ]; then
+        echo "<p style="color:red\;"><b>WARNING:</b> Your data is not persistent and WILL NOT survive a reboot. Please locate data on persistent storage. eg. cache/array disk</p>"
+        break
+      else
+        echo "<p style="color:green\;">Your data will persist after a reboot</p>"
+        break
+      fi
+    done
+  fi
+}
+
+nzbget_updateplg()
+{
+  if [ -f /boot/config/plugins/nzbget_overbyrn.plg ]; then
+    nzbget_stop;
+    echo "Downloading plugin..."
+    wget -q -P /tmp --no-check-certificate https://raw.github.com/overbyrn/UnRAID/master/nzbget_overbyrn.plg 2>/dev/null
+    if [ ! -f /tmp/nzbget_overbyrn.plg ]; then
+      echo "Download failed, update aborted!"
+      sleep 2
+    else
+      echo "...OK"
+      sleep 1
+      echo  "Upgrading plugin..."
+      sleep 1
+      mv -f /boot/config/plugins/nzbget_overbyrn.plg /boot/config/plugins/nzbget/nzbget_overbyrn.plg.sav 2>/dev/null
+      mv -f /tmp/nzbget_overbyrn.plg /boot/config/plugins/nzbget_overbyrn.plg 2>/dev/null
+      /usr/local/sbin/installplg /boot/config/plugins/nzbget_overbyrn.plg 2>/dev/null
+      echo "...OK"
+      sleep 1
+    fi
+    nzbget_start;
+  fi
+}
+
+nzbget_updateapp()
+{
+  nzbget_stop;
+  echo "Downloading Update..."
+  REMPKG=$(wget --no-check-certificate https://dl.dropbox.com/u/572553/UnRAID/plugin.version.control/nzbget_appver.txt -q -O - | grep -i $BRANCH | cut -d: -f3)
+  wget -q -P /tmp --no-check-certificate https://dl.dropbox.com/u/572553/UnRAID/packages.custom/$REMPKG 2>/dev/null
+  if [ ! -f /tmp/$REMPKG ]; then
+    echo "Download failed, update aborted!"
+    sleep 2
+  else
+    echo "...OK"
+    sleep 1
+    echo "Backing up nzbget.conf to /boot/config/plugins/nzbget/nzbget.conf.save"
+    sleep 1
+    cp -f $INSTALLDIR/nzbget.conf /boot/config/plugins/nzbget/nzbget.conf.save 2>/dev/null
+    echo "Upgrading Application..."
+    sleep 1
+    upgradepkg --install-new nzbget*%/tmp/$REMPKG 2>/dev/null
+    rm -f /boot/config/plugins/nzbget/nzbget*.txz 2>/dev/null
+    mv -f /tmp/$REMPKG /boot/config/plugins/nzbget 2>/dev/null
+    chown -R nobody:users /usr/local/nzbget 2>/dev/null
+    chmod -R 777 /usr/local/nzbget 2>/dev/null
+    echo "...OK"
+    sleep 1
+  fi
+
+  # after an update, we need to account for if the user has just gone from 10.x to something higher. eg. either 11.x-testing or 11.x stable
+  # why? because lots of changes to nzbget.conf have taken place.  the author has factored for these changes in 11.x by introducing ConfigTemplate
+  # parameter. This points to a static copy of nzbget.conf and is used by the application to provide all the information as seen in NZBGet settings
+  # webui page. As long as this value is present, newer config options will be visible in the webui. The user then hits Save and any new settings
+  # are saved to the users real nzbget.conf file located at INSTALLDIR.  
+  # Do a check for ConfigTemplate and if NOT found, assume the user has an existing 10.x conf file. In which case add this config varible to their file.
+  ! grep -q ConfigTemplate $INSTALLDIR/nzbget.conf && sed -i '$a\ConfigTemplate=/usr/local/nzbget/nzbget.conf' $INSTALLDIR/nzbget.conf
+  
+  # although we have just upgraded the nzbget package, there is a scenario where we have reached this point having never yet performed an install.  by
+  # install, we mean creating the persisent directory used to store the config file and nzbget working directories.  we call nzbget_start which itself
+  # performs a check to make sure the user config file exists.  So the remainder of the install work (create work dir and config file) is done from start 
+  # by calling a generic install function.
+  nzbget_start;
+}
+
+nzbget_plgver()
+{
+  case "$1" in
+    'local')
+      if [ -f /boot/config/plugins/nzbget_overbyrn.plg ]; then
+	    VERSION=$(grep "<\!ENTITY plgver" /boot/config/plugins/nzbget_overbyrn.plg | cut -d\" -f2)
+	  else
+	    VERSION=Unknown
+	  fi
+    ;;
+    'remote')
+      VERSION=$(wget --no-check-certificate -q https://raw.github.com/overbyrn/UnRAID/master/nzbget_overbyrn.plg -O - | grep "<\!ENTITY plgver" | cut -d\" -f2)
+      if [ "$VERSION" == "" ]; then
+        VERSION=Unknown
+      fi
+    ;;
+  esac
+  echo -n "$VERSION"
+}
+
+nzbget_appver()
+{
+  case "$1" in
+    'local')
+      VERSION=$(/usr/local/nzbget/nzbget -v | awk '{print $3}')
+	  if [ "$VERSION" == "" ]; then
+        VERSION=Unknown
+	  fi	
+    ;;
+    'remote')
+      VERSION=$(wget --no-check-certificate https://dl.dropbox.com/u/572553/UnRAID/plugin.version.control/nzbget_appver.txt -q -O - | grep -i $BRANCH | cut -d: -f2)
+      if [ "$VERSION" == "" ]; then
+        VERSION=Unknown
+      fi
+    ;;
+  esac
+  echo -n "$VERSION"
+}
+
+nzbget_getver()
+{
+  if [[ ! -z $1 && ! -z $2 ]]; then
+  case "$1" in
+    'plg')
+      nzbget_plgver $2
+    ;;
+    'app')
+      nzbget_appver $2
+    ;;
+  esac
+  else
+    echo "usage $0 getver plg|app local|remote"
+  fi
+}
+
+# read our configuration
+source /boot/config/plugins/nzbget/nzbget.cfg
+
+case "$1" in
+  'start')
+    nzbget_start
+  ;;
+  'stop')
+    nzbget_stop
+  ;;
+  'restart')
+    nzbget_restart
+  ;;
+  'enable')
+    nzbget_enable $1 $2 $3 $4 $5 $6 $7
+  ;;
+  'disable')
+    nzbget_disable $1 $2 $3 $4 $5 $6 $7
+  ;;
+  'install')
+    nzbget_install
+  ;;
+  'buttonstart')
+    nzbget_buttonstart
+  ;;
+  'storagesize')
+    nzbget_storagesize $2
+  ;;
+  'datacheck')
+    nzbget_datacheck
+  ;;
+  'updateplg')
+    nzbget_updateplg
+  ;;
+  'updateapp')
+    nzbget_updateapp
+  ;;
+  'getver')
+    nzbget_getver $2 $3
+    ;;
+  *)
+    echo "usage $0 start|stop|restart|enable|disable|install|buttonstart|storagesize|datacheck|updateplg|updateapp|getver"
+esac
+
+]]>
+</INLINE>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/nzbget/nzbget.png">
+<LOCAL>/boot/config/plugins/nzbget/nzbget.png</LOCAL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/nzbget/device_status.png">
+<LOCAL>/boot/config/plugins/images/device_status.png</LOCAL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/nzbget/new_config.png">
+<LOCAL>/boot/config/plugins/images/new_config.png</LOCAL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/nzbget/information.png">
+<LOCAL>/boot/config/plugins/images/information.png</LOCAL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/nzbget/nzbget.php">
+<INLINE>
+<![CDATA[
+<?PHP
+$nzbget_cfg = parse_ini_file( "/boot/config/plugins/nzbget/nzbget.cfg");
+$nzbget_installed = is_dir( $nzbget_cfg['INSTALLDIR'] ) ? "yes" : "no";
+$nzbget_localplg = shell_exec("/etc/rc.d/rc.nzbget getver plg local");
+$nzbget_remoteplg = shell_exec("/etc/rc.d/rc.nzbget getver plg remote");
+$nzbget_localapp = shell_exec("/etc/rc.d/rc.nzbget getver app local");
+$nzbget_remoteapp = shell_exec("/etc/rc.d/rc.nzbget getver app remote");
+
+if ($nzbget_installed=="yes") {
+  $nzbget_running = file_exists( "/var/run/nzbget/nzbget.pid" ) ? "yes" : "no";
+  $nzbget_datasize = shell_exec ( "/etc/rc.d/rc.nzbget storagesize $nzbget_cfg[INSTALLDIR]" );
+  $nzbget_datacheck = shell_exec ( "/etc/rc.d/rc.nzbget datacheck" );
+}
+$controls_exist = "false";
+$updates_exist = "false";
+?>
+
+<html>
+<head></head>
+<body>
+
+<div style="width: 49%; float:left; border: 0px solid black;">
+  <div id="title">
+    <span class="left">Status:&nbsp;<img src='/plugins/nzbget/device_status.png'>
+      <?if ($nzbget_installed=="yes"):?>
+        <?if ($nzbget_running=="yes"):?>
+          <span class="green"><a href="http://<?=$var['NAME'];?>:<?=$nzbget_cfg['PORT'];?>" style="color: green; text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'" title="Click here to open NZBGet web page.&#13;Default Login:&#13;UserID: nzbget&#13;Passwd: password" target="_blank"><span class="green"><b>NZBGet is RUNNING on port <?=$nzbget_cfg['PORT'];?></b></span></a></span>
+        <?else:?>
+          <span class="red"><b>NOT RUNNING</b></span>
+        <?endif;?>
+      <?else:?>
+        <span class="red"><b>NOT INSTALLED</b></span>
+      <?endif;?>
+    </span>
+  </div>
+  
+  <? if ($nzbget_installed=="yes"): ?>
+    <div style="border: 0px solid black;">
+      <span class="left">
+        <?=$nzbget_datasize?>
+        <?=$nzbget_datacheck?>  
+	  </span>
+    </div>  
+  <?endif;?>   
+       
+  <br>
+  
+  <div style="border: 0px solid black;">
+    <table>
+      <tr style="font-weight:bold; color:#333333; background:#F0F0F0; text-shadow:0 1px 1px #FFFFFF;">
+        <td>Package/Plugin</td>
+        <td>Local Version</td>		
+        <td>Online Version</td>
+      </tr>
+      <tr style="font-weight:bold; background:#FFFFFF;">
+        <td>NZBGet Package</td>
+        <td>
+          <?if ($nzbget_localapp != "Unknown"):?>
+            <span class="green-text"><?=$nzbget_localapp?></span>
+          <?else:?>
+            <span class="red-text">UNKNOWN</span>
+          <?endif;?>
+        </td>
+        <td>
+          <?if ($nzbget_remoteapp != "Unknown"):?>
+            <span class="green-text"><?=$nzbget_remoteapp?></span>
+          <?else:?>
+            <span class="red-text">UNKNOWN</span>
+          <?endif;?>
+        </td>
+      </tr>
+      <tr style="font-weight:bold; background:#FFFFFF;">
+        <td>NZBGet Plugin</td>
+        <td>
+          <?if ($nzbget_localplg != "Unknown"):?>
+              <span class="green-text"><?=$nzbget_localplg?></span>
+          <?else:?>
+            <span class="red-text">UNKNOWN</span>
+          <?endif;?>
+        </td>
+        <td>
+          <?if ($nzbget_remoteplg != "Unknown"):?>
+              <span class="green-text"><?=$nzbget_remoteplg?></span>
+          <?else:?>
+            <span class="red-text">UNKNOWN</span>
+          <?endif;?>
+        </td>
+      </tr>      
+    </table>
+  </div>  
+
+  <br></br>
+
+  <div>
+    <table>
+      <tr style="font-weight:bold; color:#333333; background:#F0F0F0; text-shadow:0 1px 1px #FFFFFF;">
+        <td colspan="2">Control</td>
+      </tr>    
+    <?if ($nzbget_installed=="yes"):?>
+      <?if ($nzbget_running=="yes"):?>
+        <tr>
+        <td width="30%">
+          <form name="nzbget_start_stop" method="POST" action="/update.htm" target="progressFrame">
+            <input type="hidden" name="cmd" value="/etc/rc.d/rc.nzbget stop">
+            <input type="submit" name="runCmd" value="Stop">
+          </form>      
+        </td>
+        <td>Stop NZBGet Daemon</td>
+        </tr>
+        <tr>
+        <td width="30%">
+          <form name="nzbget_restart" method="POST" action="/update.htm" target="progressFrame">
+            <input type="hidden" name="cmd" value="/etc/rc.d/rc.nzbget restart">
+            <input type="submit" name="runCmd" value="Restart">
+          </form>  
+        </td>
+        <td>Restart NZBGet Daemon</td>
+        </tr>
+        <?$controls_exist = "true"?>
+      <?else:?>
+        <tr>
+        <td width="30%">
+          <form name="nzbget_start" method="POST" action="/update.htm" target="progressFrame">
+            <input type="hidden" name="cmd" value="/etc/rc.d/rc.nzbget buttonstart">
+            <input type="submit" name="runCmd" value="Start">
+          </form>
+        </td>
+        <td>Start NZBGet Daemon</td>
+        </tr>
+        <?$controls_exist = "true"?>
+      <?endif;?>
+    <?else:?>
+        <tr>
+      <td width="30%">
+        <form name="nzbget_install" method="POST" action="/update.htm" target="progressFrame">
+          <input type="hidden" name="cmd" value="/etc/rc.d/rc.nzbget install">
+          <input type="submit" name="runCmd" value="Install">
+        </form>
+      </td>
+      <td>Install NZBGet Application</td>
+      </tr>
+      <?$controls_exist = "true"?>      
+    <?endif;?>
+      
+    <?if ($controls_exist=="false"):?>
+      <tr>
+        <td colspan="2" align="center">No Control Actions available</td>
+      </tr>
+    <?endif;?>
+    </table>
+  </div>  
+  <br></br> 
+  <div style="border: 0px solid black;">
+    <table>
+      <tr style="font-weight:bold; color:#333333; background:#F0F0F0; text-shadow:0 1px 1px #FFFFFF;">
+        <td colspan="2">Updates</td>
+      </tr>
+      <?if (($nzbget_remoteplg != $nzbget_localplg) && ($nzbget_localplg != "Unknown") && ($nzbget_remoteplg != "Unknown")): ?>
+        <tr>
+        <td width="30%">
+          <form name="nzbget_updateplg" method="POST" action="/update.htm" target="progressFrame">
+            <input type="hidden" name="cmd" value="/etc/rc.d/rc.nzbget updateplg">
+            <input type="submit" name="runCmd" value="Update Plugin">
+          </form>
+        </td>
+          <td><span class="red-text">An update is available to the plugin</span></td>
+        </tr>
+        <?$updates_exist="true"?>
+      <?endif;?>
+
+      <?if (($nzbget_remoteapp != $nzbget_localapp) && ($nzbget_localapp != "Unknown") && ($nzbget_remoteapp != "Unknown")): ?>
+        <tr>
+          <td width="30%">
+          <form name="nzbget_updateapp" method="POST" action="/update.htm" target="progressFrame">
+            <input type="hidden" name="cmd" value="/etc/rc.d/rc.nzbget updateapp">
+            <input type="submit" name="runCmd" value="Update NZBGet">
+          </form>
+          </td>
+          <td><span class="red-text">An update is available to NZBGet</span></td>
+        </tr>
+        <?$updates_exist="true"?>
+      <?endif;?>
+
+      <?if ($updates_exist=="false"):?>
+        <tr>
+          <td colspan="2" align="center">No updates available at this time</td>
+        </tr>
+      <?endif;?>
+    </table>
+  </div>
+  <br></br>
+  <br></br>
+</div>
+
+<div style="width: 49%; float:right; border: 0px solid black;">
+  <div id="title">
+    <span class="left">Configuration:&nbsp;<img src='/plugins/nzbget/new_config.png'></span>
+  </div>
+  <form name="nzbget_settings" method="POST" action="/update.htm" target="progressFrame" onsubmit="validateForm();">
+    <input type="hidden" name="cmd" value="/etc/rc.d/rc.nzbget">
+    <table class="settings">
+      <tr>
+        <td>Enable NZBGet Service:</td>
+        <td>
+          <select name="arg1" id="arg1" size="1">
+            <?=mk_option($nzbget_cfg['SERVICE'], "disable", "No");?>
+            <?=mk_option($nzbget_cfg['SERVICE'], "enable", "Yes");?>
+          </select>
+        </td>
+      </tr>
+      <tr>
+        <td>NZBGet Port:</td>
+        <td><input type="text" name="arg2" id="arg2" maxlength="60" value="<?=$nzbget_cfg['PORT'];?>"></td>
+      </tr>
+      <tr>
+        <td>NZBGet Location:</td>
+        <td><input type="text" name="arg3" id="arg3" maxlength="60" value="<?=$nzbget_cfg['INSTALLDIR'];?>"></td>
+      </tr>
+      <tr>
+        <td>NZBGet Branch:</td>
+        <td>
+          <select name="arg4" id="arg4" size="1">
+            <?=mk_option($nzbget_cfg['BRANCH'], "stable", "Stable");?>
+            <?=mk_option($nzbget_cfg['BRANCH'], "testing", "Testing");?>
+          </select>
+        </td>
+      </tr>
+    </table>
+    <div align="center">
+      <hr size="3" align="center" width="75%" color="grey" style="margin-top:20px;margin-bottom:18px">
+      <input type="submit" name="runCmd" value="Apply"><button type="button" onClick="done();">Done</button>
+    </div>
+  </form>
+  <br />
+</div>
+
+<script type="text/javascript">
+function validateForm() {
+  document.getElementById('arg2').disabled = false;
+  document.getElementById('arg3').disabled = false;
+  document.getElementById('arg4').disabled = false;
+}
+
+function checkRUNNING(form) {
+  if ("<?=$nzbget_running;?>" == "yes") {
+    form.arg2.disabled = true;
+    form.arg3.disabled = true;
+    form.arg4.disabled = true;
+  }
+}
+
+checkRUNNING(document.nzbget_settings);
+</script>
+
+</body>
+</html>
+
+]]>
+</INLINE>
+</FILE>
+
+<!-- event handler -->
+<FILE Name="/usr/local/emhttp/plugins/nzbget/event/disks_mounted" Mode="0770">
+<INLINE>
+#!/bin/bash
+#load plugin config
+source /boot/config/plugins/nzbget/nzbget.cfg
+#Start nzbget if enabled
+[ $SERVICE = "enable" ] &amp;&amp; /etc/rc.d/rc.nzbget start
+</INLINE>
+</FILE>
+
+<!-- event handler -->
+<FILE Name="/usr/local/emhttp/plugins/nzbget/event/unmounting_disks" Mode="0770">
+<INLINE>
+#!/bin/bash
+/etc/rc.d/rc.nzbget stop
+</INLINE>
+</FILE>
+
+<FILE Name="/tmp/plugin-install" Run="/bin/bash">
+<INLINE>
+#load plugin config
+source /boot/config/plugins/nzbget/nzbget.cfg
+
+# get (if necessary) and install nzbget package. ensures the plugin will always install the latest available build
+REMPKG=$(wget --no-check-certificate https://dl.dropbox.com/u/572553/UnRAID/plugin.version.control/nzbget_appver.txt -q -O - | grep -i $BRANCH | cut -d: -f3)
+echo "Looking for locally saved version of $REMPKG"
+if [[ ! -e &plg;/$REMPKG ]]; then
+  echo "Local saved version does not exist, downloading $REMPKG to /tmp"
+  wget -q -P /tmp --no-check-certificate https://dl.dropbox.com/u/572553/UnRAID/packages.custom/$REMPKG 2>/dev/null
+  echo "Installing package /tmp/$REMPKG..."
+  upgradepkg --install-new nzbget*%/tmp/$REMPKG
+  echo "Deleting any old builds which may be at &plg;..."
+  rm -f &plg;/nzbget*.txz
+  echo "Moving downloaded version from /tmp/$REMPKG to &plg;/$REMPKG..."
+  mv -f /tmp/$REMPKG &plg;
+else
+  echo "Found an up to date locally saved version of $REMPKG at &plg;"
+  echo "Installing package &plg;/$REMPKG..."
+  upgradepkg --install-new nzbget*%&plg;/$REMPKG
+fi
+
+# create nzbget-writable directory for pid file
+echo "Creating writable PID dir..."
+[ ! -e /var/run/nzbget ] &amp;&amp; mkdir -m 0777 /var/run/nzbget
+
+#set ownership and permission of nzbget binaries to nobody
+echo "Setting ownership/perms of nzbget binaries..."
+chown -R nobody:users /usr/local/nzbget 2>/dev/null
+chmod -R 777 /usr/local/nzbget 2>/dev/null
+
+rm /tmp/plugin-install
+</INLINE>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/nzbget/nzbget.page">
+<INLINE>
+Menu="NetworkServices"
+Icon="nzbget.png"
+Version=&plgver;
+Author=&author;
+Type="php"
+Title=&plugin;
+</INLINE>
+</FILE>
+
+<FILE Name="/var/log/plugins/nzbget">
+<INLINE>
+&plugin; v&plgver;
+</INLINE>
+</FILE>
+
+<FILE Name="/tmp/plugin-development" Run="/bin/bash">
+<INLINE>
+if [ "&dev;" == "true" ]; then
+  if [ -f /boot/config/plugins/nzbget.php ]; then
+    rm -f &gui;/nzbget/nzbget.php
+    ln -s /boot/config/plugins/nzbget.php &gui;/nzbget/nzbget.php
+  else
+    mv &gui;/nzbget/nzbget.php /boot/config/plugins/nzbget.php
+    ln -s /boot/config/plugins/nzbget.php &gui;/nzbget/nzbget.php
+  fi
+  if [ -f /boot/config/plugins/rc.nzbget ]; then
+    rm -f /etc/rc.d/rc.nzbget
+    ln -s /boot/config/plugins/rc.nzbget /etc/rc.d/rc.nzbget
+  else
+    mv /etc/rc.d/rc.nzbget /boot/config/plugins/rc.nzbget
+    ln -s /boot/config/plugins/rc.nzbget /etc/rc.d/rc.nzbget
+  fi
+fi
+
+rm /tmp/plugin-development
+</INLINE>
+</FILE>
+
+</PLUGIN>
