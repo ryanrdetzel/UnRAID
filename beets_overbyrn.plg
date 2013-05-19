@@ -168,7 +168,7 @@ export BEETSDIR
 <INLINE>
 <![CDATA[
 plugins: fetchart embedart convert scrub replaygain lastgenre chroma
-directory: /mnt/disk1/TaggedMusic
+directory: /mnt/user/Music Tagging
 library: /boot/config/plugins/beets/beets.blb
 art_filename: cover
 threaded: yes
@@ -177,11 +177,11 @@ per_disc_numbering: no
 color: no
 
 convert:
-    auto: no
+    auto: yes
     ffmpeg: /usr/bin/ffmpeg
     opts: -ab 320k -ac 2 -ar 48000
-    max_bitrate: 0
-    dest: /mnt/disk1/TaggedMusic/Converted
+    max_bitrate: 320
+    dest: /mnt/user/Music Tagging/Converted
     threads: 4
     
 paths:
@@ -194,7 +194,7 @@ import:
     copy: yes
     move: no
     resume: ask
-    incremental: yes
+    incremental: no
     quiet_fallback: skip
     timid: no
     log: /boot/config/plugins/beets/beetslog.txt
@@ -210,7 +210,7 @@ fetchart:
     auto: yes
     
 replaygain:
-    auto: no
+    auto: yes
 ]]>
 </INLINE>
 </FILE>
@@ -218,7 +218,7 @@ replaygain:
 <FILE Name="/boot/config/plugins/beets/beets.cfg">
 <INLINE>
 #beets configuration
-DESTDIR="/mnt/user/MusicTagging"
+DESTDIR="/mnt/user/Music Tagging"
 LIBDIR="/boot/config/plugins/beets/beets.blb"
 ARTFILE="cover"
 THREADED="yes"
@@ -226,7 +226,7 @@ ORIGDATE="no"
 PERDISCNUM="no"
 CONVERT_STATE="no"
 CONVERT_OPTS="-ab 320k -ac 2 -ar 48000"
-CONVERT_MAXBITRATE="0"
+CONVERT_MAXBITRATE="320"
 CONVERT_DESTINATION="/mnt/user/MusicTagging/Converted"
 CONVERT_THREADS="4"
 PATH_DEFAULT="Album Artists/$albumartist/$album%aunique{}/$track - $title"
