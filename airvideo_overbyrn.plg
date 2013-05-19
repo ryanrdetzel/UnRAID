@@ -604,7 +604,7 @@ $updates_exist = "false";
             <input type="submit" name="runCmd" value="Update Plugin">
           </form>
         </td>
-          <td>An update is available to the plugin</td>
+        <td><span class="red-text">An update is available to the plugin</span></td>
         </tr>
         <?$updates_exist="true"?>
       <?endif;?>
