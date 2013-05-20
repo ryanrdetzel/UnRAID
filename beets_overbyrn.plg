@@ -159,7 +159,7 @@ echo "Starting beets.sh for $(basename $1)"
 
 BEETSDIR=/boot/config/plugins/beets
 export BEETSDIR
-/usr/bin/beet -v import "$1"
+/usr/bin/beet -v import -q "$1"
 ]]>
 </INLINE>
 </FILE>
