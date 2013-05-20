@@ -111,8 +111,8 @@ The plug-in has been designed to check for the existance of a public key for eac
 - There should now be a sub-directory called `fred`
 - Inside this directory is another called `.ssh`
 - Open the **read_me.txt** file which you will find in this directory. This file contains full instructions on how to create a key-pair and configure for the plug-in.  It also contains steps on how to convert the OpenSSH private key into a Putty compatible format.  (all utilities needed are supplied as part of the plug-in installation). A master copy of *read_me.txt* is also stored in the root plugin directory (/boot/config/plugins/ssh).
-***
 
+***
 ## Support
 Please provide feedback to any problems encountered or to request enhancements or missing features that you would like to see added.  
 
