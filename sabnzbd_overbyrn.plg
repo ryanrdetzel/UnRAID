@@ -11,7 +11,7 @@
 <!ENTITY gui "/usr/local/emhttp/plugins">
 <!ENTITY url1 "https://raw.github.com/overbyrn/Unplugged/master">
 <!ENTITY url2 "https://dl.dropbox.com/u/572553/UnRAID">
-<!ENTITY dev "true"><!-- set to "true" during plugin development -->
+<!ENTITY dev "false"><!-- set to "true" during plugin development -->
 ]>
 
 <PLUGIN>
@@ -32,15 +32,14 @@ Plugin file locations:
  /tmp/plugin-cleanup                                                            # deletion script
  /tmp/plugin-install                                                            # installation script
  
+ /boot/packages/infozip-6.0-i486-1.txz                                          # manadatory package dependency
+ /boot/packages/par2cmdline_tbb-0.4-i486-1kh.tgz                                # manadatory package dependency
  /boot/packages/python-2.6.6-i486-1.txz                                         # manadatory package dependency
  /boot/packages/python-cheetah-2.4.4-i486-1alien.tgz                            # manadatory package dependency
  /boot/packages/python-yenc-0.3-i486-1alien.tgz                                 # manadatory package dependency
+ /boot/packages/pyopenssl-0.11-i486-1alien.tgz                                  # manadatory package dependency
  /boot/packages/sqlite-3.7.5-i486-1.txz                                         # manadatory package dependency
  /boot/packages/unrar-4.2.4-i486-1alien.tgz                                     # manadatory package dependency
- /boot/packages/infozip-6.0-i486-1.txz                                          # manadatory package dependency
- /boot/packages/pyopenssl-0.11-i486-1alien.tgz                                  # manadatory package dependency
- /boot/packages/openssl-0.9.8r-i486-3.txz                                       # manadatory package dependency
- /boot/packages/par2cmdline_tbb-0.4-i486-1kh.tgz                                # manadatory package dependency
 
  /boot/config/plugins/sabnzbd/sabnzbd.png                                       # icon file (copied to webgui plugin dir)
  /boot/config/plugins/images/device_status.png                                  # icon file (copied to webgui plugin dir)
