@@ -503,8 +503,6 @@ sabnzbd_status()
     ;;
     'portinfo')
       sabnzbd_portchk
-      #echo "<p style="margin-left:10px\;">RUNNING on $RES1$RES2$RES3</p>"
-      #echo "<p style="color:green\;">RUNNING on $RES1$RES2$RES3</p>"
       echo "RUNNING on $RES1$RES2$RES3"
     ;;
     *)
@@ -558,7 +556,11 @@ sabnzbd_appver()
 {
   case "$1" in
     'local')
-      VERSION=$(python $INSTALLDIR/SABnzbd.py --version | sed '/SABnzbd.py*/!d' | cut -c12-21)
+      if [ -f "$INSTALLDIR/SABnzbd.py" ]; then
+        VERSION=$(python $INSTALLDIR/SABnzbd.py --version | sed '/SABnzbd.py*/!d' | cut -c12-21)
+      else
+        VERSION="Unknown"
+      fi
     ;;
     'remote')
       stable_version=($(wget -q -O - http://sabnzbd.org/version/latest | awk '/0/{gsub(/\015/,"");print}'))
@@ -831,7 +833,7 @@ else {
             <input type="submit" name="runCmd" value="Start">
           </form>
         </td>
-        <td>Start SANnzbd Daemon</td>
+        <td>Start SABnzbd Daemon</td>
         </tr>
         <?$controls_exist = "true"?>
       <?endif;?>
@@ -839,11 +841,11 @@ else {
       <tr>
       <td width="30%">
         <form name="sabnabd_install" method="POST" action="/update.htm" target="progressFrame">
-          <input type="hidden" name="cmd" value="/etc/rc.d/rc.sabnabd install">
+          <input type="hidden" name="cmd" value="/etc/rc.d/rc.sabnzbd install">
           <input type="submit" name="runCmd" value="Install">
         </form>
       </td>
-      <td>Install NZBGet Application</td>
+      <td>Install SABnzbd Application</td>
       </tr>
       <?$controls_exist = "true"?>      
     <?endif;?>
