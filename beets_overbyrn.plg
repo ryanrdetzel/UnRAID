@@ -855,7 +855,8 @@ rm -f ffmpeg.static.32bit.2013-04-06.tar.gz
 pip install pylast
 
 # install beets
-pip install beets==dev
+#pip install beets==dev
+pip install beets
 
 # install pyacoustid (needed for chromaprint)
 pip install pyacoustid
