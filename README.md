@@ -19,7 +19,7 @@ This is my collection of plugins for UnRAID;
 
 * **OpenSSH**: Provides encrypted communication sessions over a computer network using the SSH protocol.  SSH is typically used to log into a remote machine and execute commands, but it also supports tunneling, forwarding TCP ports and it can transfer files using the associated SSH file transfer (SFTP) or secure copy (SCP) protocols.
 
-* **SABnzbd**: UNSUPPORTED!  This is a fork of sabnzbd plugin as done by Influencer.  It is for personal use only and as such is not supported in any way.  If you choose to use it, please do NOT expect any support.  Posts on the UnRAID forum will be ignored.  In fact I'll riducule you for ignoring this very obvious message.
+* **SABnzbd**: UNSUPPORTED!  This is a fork of sabnzbd plugin as done by Influencer.  It is for personal use only and as such is not supported in any way.  If you choose to use it, please do NOT expect any support.  Posts on the UnRAID forum will be ignored.  In fact I'll riducule you for ignoring this very obvious message. If you want to install SABnzbd plugin on UnRAID, you should install the actively maintained plugin by Influencer. Available at https://github.com/Influencer/UNplugged
 
 
 ## Download Links
