@@ -3,7 +3,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY plugin "BTSync">
 <!ENTITY author "overbyrn">
-<!ENTITY plgver "1.4">
+<!ENTITY plgver "1.5">
 <!ENTITY pkg "/boot/packages">
 <!ENTITY plg "/boot/config/plugins/btsync">
 <!ENTITY img "/boot/config/plugins/images">
@@ -99,10 +99,11 @@ rmRecursiveNoWarn() {
 }
 
 #Remove currently installed plugin files
-rmNoWarn /etc/rc.d/rc.btsync                             # control script
-rmNoWarn /var/run/btsync/btsync.pid                      # stale pid file
-rmRecursiveNoWarn /usr/local/emhttp/plugins/btsync       # btsync unraid webgui integration files
-rmNoWarn /var/log/plugins/btsync                         # record of previous plugin installation
+rmNoWarn /etc/rc.d/rc.btsync                                # control script
+rmNoWarn /var/run/btsync/btsync.pid                         # stale pid file
+rmRecursiveNoWarn /usr/local/emhttp/plugins/btsync          # btsync unraid webgui integration files
+rmNoWarn /var/log/plugins/btsync                            # record of previous plugin installation
+rmNoWarn /boot/config/plugins/btsync/btsync.conf.template   # btsync tempate config file (by deleting, ensure latest always created from below)
 
 rm /tmp/plugin-cleanup
 </INLINE>
@@ -120,6 +121,10 @@ LISTENINGPORT="0"
 UPNP="true"
 DNLIMIT="0"
 UPLIMIT="0"
+DISKLOWPRIORITY="false"
+LANENCRYPTDATA="false"
+LANUSETCP="false"
+RATELIMITLOCALPEERS="false"
 </INLINE>
 </FILE>
 
@@ -135,6 +140,10 @@ UPLIMIT="0"
   "use_upnp" : true,
   "download_limit" : 0,
   "upload_limit" : 0,
+  "disk_low_priority" : false,
+  "lan_encrypt_data" : false,
+  "lan_use_tcp" : false,
+  "rate_limit_local_peers" : false,
   "webui" :
   {
     "listen" : "0.0.0.0:50001",
@@ -152,7 +161,27 @@ UPLIMIT="0"
 <![CDATA[
 #!/bin/bash
 
-# currently not needed
+# check for and if missing add params introduced in v1.5 of plugin
+paramchk=$(cat /boot/config/plugins/btsync/btsync.cfg | grep DISKLOWPRIORITY)
+if [[ $paramchk = "" ]]; then
+    echo "" >> /boot/config/plugins/btsync/btsync.cfg
+    echo "DISKLOWPRIORITY=\"false\"" >> /boot/config/plugins/btsync/btsync.cfg
+fi
+paramchk=$(cat /boot/config/plugins/btsync/btsync.cfg | grep LANENCRYPTDATA)
+if [[ $paramchk = "" ]]; then
+    echo "" >> /boot/config/plugins/btsync/btsync.cfg
+    echo "LANENCRYPTDATA=\"false\"" >> /boot/config/plugins/btsync/btsync.cfg
+fi
+paramchk=$(cat /boot/config/plugins/btsync/btsync.cfg | grep LANUSETCP)
+if [[ $paramchk = "" ]]; then
+    echo "" >> /boot/config/plugins/btsync/btsync.cfg
+    echo "LANUSETCP=\"false\"" >> /boot/config/plugins/btsync/btsync.cfg
+fi
+paramchk=$(cat /boot/config/plugins/btsync/btsync.cfg | grep RATELIMITLOCALPEERS)
+if [[ $paramchk = "" ]]; then
+    echo "" >> /boot/config/plugins/btsync/btsync.cfg
+    echo "RATELIMITLOCALPEERS=\"false\"" >> /boot/config/plugins/btsync/btsync.cfg
+fi
 
 rm /tmp/plugin-chkcfg
 ]]>
@@ -246,6 +275,10 @@ write_plugin_config()
   echo "UPNP=\"$UPNP\"" >> /boot/config/plugins/btsync/btsync.cfg
   echo "DNLIMIT=\"$DNLIMIT\"" >> /boot/config/plugins/btsync/btsync.cfg  
   echo "UPLIMIT=\"$UPLIMIT\"" >> /boot/config/plugins/btsync/btsync.cfg
+  echo "DISKLOWPRIORITY=\"$DISKLOWPRIORITY\"" >> /boot/config/plugins/btsync/btsync.cfg
+  echo "LANENCRYPTDATA=\"$LANENCRYPTDATA\"" >> /boot/config/plugins/btsync/btsync.cfg
+  echo "LANUSETCP=\"$LANUSETCP\"" >> /boot/config/plugins/btsync/btsync.cfg
+  echo "RATELIMITLOCALPEERS=\"$RATELIMITLOCALPEERS\"" >> /boot/config/plugins/btsync/btsync.cfg
 }
 
 write_btsync_config()
@@ -257,9 +290,15 @@ write_btsync_config()
   sed -i "s#.*\"use_upnp\".*#  \"use_upnp\" : $UPNP,#" $INSTALLDIR/btsync.conf 2>/dev/null
   sed -i "s#.*\"download_limit\".*#  \"download_limit\" : $DNLIMIT,#" $INSTALLDIR/btsync.conf 2>/dev/null
   sed -i "s#.*\"upload_limit\".*#  \"upload_limit\" : $UPLIMIT,#" $INSTALLDIR/btsync.conf 2>/dev/null   
+
+  sed -i "s#.*\"disk_low_priority\".*#  \"disk_low_priority\" : $DISKLOWPRIORITY,#" $INSTALLDIR/btsync.conf 2>/dev/null   
+  sed -i "s#.*\"lan_encrypt_data\".*#  \"lan_encrypt_data\" : $LANENCRYPTDATA,#" $INSTALLDIR/btsync.conf 2>/dev/null   
+  sed -i "s#.*\"lan_use_tcp\".*#  \"lan_use_tcp\" : $LANUSETCP,#" $INSTALLDIR/btsync.conf 2>/dev/null   
+  sed -i "s#.*\"rate_limit_local_peers\".*#  \"rate_limit_local_peers\" : $RATELIMITLOCALPEERS,#" $INSTALLDIR/btsync.conf 2>/dev/null   
+  
   sed -i "s#.*\"listen\".*#    \"listen\" : \"0.0.0.0:$GUIPORT\",#" $INSTALLDIR/btsync.conf 2>/dev/null
   sed -i "s#.*\"login\".*#    \"login\" : \"$LOGIN\",#" $INSTALLDIR/btsync.conf 2>/dev/null
-  sed -i "s#.*\"password\".*#    \"password\" : \"$PASSWORD\"#" $INSTALLDIR/btsync.conf 2>/dev/null  
+  sed -i "s#.*\"password\".*#    \"password\" : \"$PASSWORD\"#" $INSTALLDIR/btsync.conf 2>/dev/null
 }
 
 btsync_change_settings()
@@ -280,6 +319,10 @@ btsync_change_settings()
   UPNP="$6"
   UPLIMIT="$7"
   DNLIMIT="$8"
+  DISKLOWPRIORITY="$9"
+  LANENCRYPTDATA=${10}
+  LANUSETCP=${11}
+  RATELIMITLOCALPEERS=${12}
 }
 
 btsync_enable()
@@ -287,7 +330,7 @@ btsync_enable()
   echo "Applying Settings ($1) ..."
   sleep 2
   SERVICE=$1 #enable
-  btsync_change_settings $2 $3 $4 $5 $6 $7 $8 $9
+  btsync_change_settings $2 $3 $4 $5 $6 $7 $8 $9 ${10} ${11} ${12} ${13}
   write_plugin_config
   btsync_install
   btsync_restart
@@ -301,7 +344,7 @@ btsync_disable()
   sleep 2
   btsync_stop
   SERVICE=$1 #disable
-  btsync_change_settings $2 $3 $4 $5 $6 $7 $8 $9
+  btsync_change_settings $2 $3 $4 $5 $6 $7 $8 $9 ${10} ${11} ${12} ${13}
   write_plugin_config
   echo "... OK"
   sleep 1
@@ -450,10 +493,12 @@ case "$1" in
     btsync_restart
   ;;
   'enable')
-    btsync_enable $1 $2 $3 $4 $5 $6 $7 $8 $9
+    btsync_enable $1 $2 $3 $4 $5 $6 $7 $8 $9 ${10} ${11} ${12} ${13}
   ;;
   'disable')
-    btsync_disable $1 $2 $3 $4 $5 $6 $7 $8 $9
+    echo "p10 = ${10}"
+	sleep 5
+	btsync_disable $1 $2 $3 $4 $5 $6 $7 $8 $9 ${10} ${11} ${12} ${13}
   ;;
   'install')
     btsync_install
@@ -514,7 +559,29 @@ $updates_exist = "false";
 ?>
 
 <html>
-<head></head>
+  <head>
+    <style type="text/css">
+    .tooltip {
+        border-bottom: 1px dotted #000000; color: rgb(85, 85, 85);outline: none;
+        cursor: help; text-decoration: none;
+        position: relative;
+    }
+    .tooltip span {
+        margin-left: -999em;
+        position: absolute;
+    }
+    .tooltip:hover span {
+        border-radius: 5px 5px; -moz-border-radius: 5px; -webkit-border-radius: 5px; 
+        box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.1); -webkit-box-shadow: 5px 5px rgba(0, 0, 0, 0.1); -moz-box-shadow: 5px 5px rgba(0, 0, 0, 0.1);
+        font-family: Calibri, Tahoma, Geneva, sans-serif;
+        position: absolute; left: 1em; top: 2em; z-index: 99;
+        margin-left: 0; width: 250px;
+    }
+    .classic { padding: 0.8em 1em; }
+    * html a:hover { background: transparent; }
+    .classic {background: #FFFFAA; border: 1px solid #FFAD33; }
+    </style>
+  </head>
 <body>
 
 <div style="width: 49%; float:left; border: 0px solid black;">
@@ -536,7 +603,7 @@ $updates_exist = "false";
     <div style="border: 0px solid black;">
       <span class="left">
         <?=$btsync_datacheck?>  
-	  </span>
+      </span>
     </div>  
   <?endif;?>   
        
@@ -546,7 +613,7 @@ $updates_exist = "false";
     <table>
       <tr style="font-weight:bold; color:#333333; background:#F0F0F0; text-shadow:0 1px 1px #FFFFFF;">
         <td>Plugin</td>
-        <td>Local Version</td>		
+        <td>Local Version</td>      
         <td>Online Version</td>
       </tr>
       <tr style="font-weight:bold; background:#FFFFFF;">
@@ -576,57 +643,57 @@ $updates_exist = "false";
       <tr style="font-weight:bold; color:#333333; background:#F0F0F0; text-shadow:0 1px 1px #FFFFFF;">
         <td colspan="2">Control</td>
       </tr>    
-    <?if ($btsync_installed=="yes"):?>
-      <?if ($btsync_running=="yes"):?>
-        <tr>
-        <td width="30%">
-          <form name="btsync_start_stop" method="POST" action="/update.htm" target="progressFrame">
-            <input type="hidden" name="cmd" value="/etc/rc.d/rc.btsync stop">
-            <input type="submit" name="runCmd" value="Stop">
-          </form>      
-        </td>
-        <td>Stop BTSync Daemon</td>
-        </tr>
-        <tr>
-        <td width="30%">
+      <?if ($btsync_installed=="yes"):?>
+        <?if ($btsync_running=="yes"):?>
+          <tr>
+          <td width="30%">
+            <form name="btsync_start_stop" method="POST" action="/update.htm" target="progressFrame">
+              <input type="hidden" name="cmd" value="/etc/rc.d/rc.btsync stop">
+              <input type="submit" name="runCmd" value="Stop">
+            </form>      
+          </td>
+          <td>Stop BTSync Daemon</td>
+          </tr>
+          <tr>
+          <td width="30%">
           <form name="btsync_restart" method="POST" action="/update.htm" target="progressFrame">
             <input type="hidden" name="cmd" value="/etc/rc.d/rc.btsync restart">
             <input type="submit" name="runCmd" value="Restart">
           </form>  
-        </td>
-        <td>Restart BTSync Daemon</td>
-        </tr>
-        <?$controls_exist = "true"?>
+          </td>
+          <td>Restart BTSync Daemon</td>
+          </tr>
+          <?$controls_exist = "true"?>
+        <?else:?>
+          <tr>
+          <td width="30%">
+            <form name="btsync_start" method="POST" action="/update.htm" target="progressFrame">
+              <input type="hidden" name="cmd" value="/etc/rc.d/rc.btsync buttonstart">
+              <input type="submit" name="runCmd" value="Start">
+            </form>
+          </td>
+          <td>Start BTSync Daemon</td>
+          </tr>
+          <?$controls_exist = "true"?>
+        <?endif;?>
       <?else:?>
         <tr>
         <td width="30%">
-          <form name="btsync_start" method="POST" action="/update.htm" target="progressFrame">
-            <input type="hidden" name="cmd" value="/etc/rc.d/rc.btsync buttonstart">
-            <input type="submit" name="runCmd" value="Start">
-          </form>
-        </td>
-        <td>Start BTSync Daemon</td>
-        </tr>
-        <?$controls_exist = "true"?>
-      <?endif;?>
-    <?else:?>
-        <tr>
-      <td width="30%">
         <form name="btsync_install" method="POST" action="/update.htm" target="progressFrame">
           <input type="hidden" name="cmd" value="/etc/rc.d/rc.btsync install">
           <input type="submit" name="runCmd" value="Install">
         </form>
-      </td>
-      <td>Install BTSync Application</td>
-      </tr>
-      <?$controls_exist = "true"?>      
-    <?endif;?>
+        </td>
+        <td>Install BTSync Application</td>
+        </tr>
+        <?$controls_exist = "true"?>      
+      <?endif;?>
       
-    <?if ($controls_exist=="false"):?>
-      <tr>
-        <td colspan="2" align="center">No Control Actions available</td>
-      </tr>
-    <?endif;?>
+      <?if ($controls_exist=="false"):?>
+        <tr>
+          <td colspan="2" align="center">No Control Actions available</td>
+        </tr>
+      <?endif;?>
     </table>
   </div>  
   <br></br> 
@@ -711,23 +778,80 @@ $updates_exist = "false";
       <tr>
         <td>BTSync Download Limit:</td>
         <td><input type="text" name="arg9" id="arg9" maxlength="60" value="<?=$btsync_cfg['DNLIMIT'];?>"></td>
-      </tr>
+      </tr> 
+    </table>
+
+    <div id="advconf_div" style="display: none;">
+        </br>
+        <table class="settings">
+        <tr>
+        <td><a class="tooltip" href="#">Disk Low Priority:<span class="classic">Sets priority for the file operations on disk. If disabled, BTSync will perform read and write file operations with the highest speed and priority which can result in degradation of performance for other applications.</span></a></td>
+        <td>
+          <select name="arg10" id="arg10" size="1">
+          <?=mk_option($btsync_cfg['DISKLOWPRIORITY'], "false", "No");?>
+          <?=mk_option($btsync_cfg['DISKLOWPRIORITY'], "true", "Yes");?>
+          </select>
+        </td>
+        </tr> 
+        <tr>
+        <td><a class="tooltip" href="#">Lan Encrypt Data:<span class="classic">If enabled, BTSync will use encryption in the local network.</span></a></td>
+        <td>
+          <select name="arg11" id="arg11" size="1">
+          <?=mk_option($btsync_cfg['LANENCRYPTDATA'], "false", "No");?>
+          <?=mk_option($btsync_cfg['LANENCRYPTDATA'], "true", "Yes");?>
+          </select>
+        </td>
+        </tr> 
+        <tr>
+        <td><a class="tooltip" href="#">Lan Use TCP:<span class="classic">If enabled, BTSync will use TCP instead of UDP in local network.</span></a></td>
+        <td>
+          <select name="arg12" id="arg12" size="1">
+          <?=mk_option($btsync_cfg['LANUSETCP'], "false", "No");?>
+          <?=mk_option($btsync_cfg['LANUSETCP'], "true", "Yes");?>
+          </select>
+        </td>
+        </tr> 
+        <tr>
+        <td><a class="tooltip" href="#">Rate Limit Local Peers:<span class="classic">Applies speed limits to the peers in local network. By default the limits are not applied in LAN.</span></a></td>
+        <td>
+          <select name="arg13" id="arg13" size="1">
+          <?=mk_option($btsync_cfg['RATELIMITLOCALPEERS'], "false", "No");?>
+          <?=mk_option($btsync_cfg['RATELIMITLOCALPEERS'], "true", "Yes");?>
+          </select>
+        </td>
+        </tr>
       </table>
+    </div>    
+    
     <div align="center">
       <hr size="3" align="center" width="75%" color="grey" style="margin-top:20px;margin-bottom:18px">
+      <input type="button" value="Show Advanced Settings" id="advconf_btn" onclick="toggle_adv_settings(this);"></input>
       <input type="submit" name="runCmd" value="Apply"><button type="button" onClick="done();">Done</button>
     </div>
+   
   </form>
-  <br />
+  <br><br>
+  <br><br>
 </div>
 
 <script type="text/javascript">
+
+function toggle_adv_settings(button) {
+  if (document.getElementById('advconf_div').style.display == 'block' || document.getElementById('advconf_div').style.display == '') {
+    document.getElementById('advconf_div').style.display = 'none';
+  }
+  else {
+    document.getElementById('advconf_div').style.display = 'block'
+  }
+  button.value=(button.value=="Show Advanced Settings")?"Hide Advanced Settings":"Show Advanced Settings";
+}
+
 function validateForm() {
   if (document.getElementById('arg3').value == "") {
-	document.getElementById('arg3').value = "-1"
+    document.getElementById('arg3').value = "-1"
   }
   if (document.getElementById('arg4').value == "") {
-	document.getElementById('arg4').value = "-1"
+    document.getElementById('arg4').value = "-1"
   }
   document.getElementById('arg2').disabled = false;
   document.getElementById('arg3').disabled = false;
@@ -737,6 +861,10 @@ function validateForm() {
   document.getElementById('arg7').disabled = false;  
   document.getElementById('arg8').disabled = false;  
   document.getElementById('arg9').disabled = false;  
+  document.getElementById('arg10').disabled = false;  
+  document.getElementById('arg11').disabled = false;  
+  document.getElementById('arg12').disabled = false;  
+  document.getElementById('arg13').disabled = false;  
 }
 
 function checkRUNNING(form) {
@@ -749,6 +877,10 @@ function checkRUNNING(form) {
     form.arg7.disabled = true;
     form.arg8.disabled = true;
     form.arg9.disabled = true;
+    form.arg10.disabled = true;
+    form.arg11.disabled = true;
+    form.arg12.disabled = true;
+    form.arg13.disabled = true;
   }
 }
 
@@ -789,12 +921,12 @@ source /boot/config/plugins/btsync/btsync.cfg
 cd /tmp
 
 # copy and untar application binary
-cp &plg;/btsync_i386.tar.gz /tmp  2>/dev/null
-tar -zxvf btsync_i386.tar.gz  2>/dev/null
+cp &plg;/btsync_i386.tar.gz /tmp 2>/dev/null
+tar -zxvf btsync_i386.tar.gz 2>/dev/null
 
 # copy btsync and config file to non-persistent app dir
-mkdir /usr/local/btsync  2>/dev/null
-mv /tmp/btsync &ram;/btsync  2>/dev/null
+mkdir /usr/local/btsync 2>/dev/null
+mv /tmp/btsync &ram;/btsync 2>/dev/null
 
 #set ownership and permission of btsync to nobody
 echo "Setting ownership/perms of btsync..."
