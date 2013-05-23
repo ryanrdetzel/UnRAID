@@ -446,6 +446,30 @@ btsync_updateplg()
   fi
 }
 
+btsync_updateapp()
+{
+  btsync_stop;
+  echo "Downloading Update..."
+  wget -q -P /tmp http://btsync.s3-website-us-east-1.amazonaws.com/btsync_i386.tar.gz 2>/dev/null
+  if [ ! -f /tmp/btsync_i386.tar.gz ]; then
+    echo "Download failed, update aborted!"
+    sleep 2
+  else
+    echo "...OK"
+    sleep 1
+    echo "Updating BTSync Application..."
+    sleep 1
+    tar -zxvf /tmp/btsync_i386.tar.gz 2>/dev/null
+    cp -f /tmp/btsync /usr/local/btsync/btsync 2>/dev/null
+    chown nobody:users /usr/local/btsync/btsync 2>/dev/null
+    chmod 775 /usr/local/btsync/btsync 2>/dev/null
+    cp -f /tmp/btsync_i386.tar.gz /boot/config/plugins/btsync 2>/dev/null   
+    echo "...OK"
+    sleep 1
+  fi
+  btsync_start;
+}
+
 btsync_plgver()
 {
   case "$1" in
@@ -466,6 +490,25 @@ btsync_plgver()
   echo -n "$VERSION"
 }
 
+btsync_appver()
+{
+  case "$1" in
+    'local')
+      VERSION=$(/usr/local/btsync/btsync --help|awk 'NR==1{print $3}')
+	  if [ "$VERSION" == "" ]; then
+        VERSION=Unknown
+	  fi	
+    ;;
+    'remote')
+      #VERSION=$(wget http://btsync.s3-website-us-east-1.amazonaws.com -q -O - | sed -e 's/<[a-zA-Z\/][^>]*>//g' | grep -i version | awk '{print $4}')
+      if [ "$VERSION" == "" ]; then
+        VERSION=Unknown
+      fi
+    ;;
+  esac
+  echo -n "$VERSION"
+}
+
 btsync_getver()
 {
   if [[ ! -z $1 && ! -z $2 ]]; then
@@ -473,9 +516,12 @@ btsync_getver()
     'plg')
       btsync_plgver $2
     ;;
+    'app')
+      btsync_appver $2
+    ;;    
   esac
   else
-    echo "usage $0 getver plg local|remote"
+    echo "usage $0 getver plg|app local|remote"
   fi
 }
 
@@ -515,6 +561,9 @@ case "$1" in
   'updateplg')
     btsync_updateplg
   ;;
+  'updateapp')
+    btsync_updateapp
+  ;;
   'getver')
     btsync_getver $2 $3
     ;;
@@ -549,6 +598,8 @@ $btsync_cfg = parse_ini_file( "/boot/config/plugins/btsync/btsync.cfg");
 $btsync_installed = is_dir( $btsync_cfg['INSTALLDIR'] ) ? "yes" : "no";
 $btsync_localplg = shell_exec("/etc/rc.d/rc.btsync getver plg local");
 $btsync_remoteplg = shell_exec("/etc/rc.d/rc.btsync getver plg remote");
+$btsync_localapp = shell_exec("/etc/rc.d/rc.btsync getver app local");
+$btsync_remoteapp = shell_exec("/etc/rc.d/rc.btsync getver app remote");
 
 if ($btsync_installed=="yes") {
   $btsync_running = file_exists( "/var/run/btsync/btsync.pid" ) ? "yes" : "no";
@@ -612,9 +663,26 @@ $updates_exist = "false";
   <div style="border: 0px solid black;">
     <table>
       <tr style="font-weight:bold; color:#333333; background:#F0F0F0; text-shadow:0 1px 1px #FFFFFF;">
-        <td>Plugin</td>
-        <td>Local Version</td>      
+        <td>Application/Plugin</td>
+        <td>Local Version</td>		
         <td>Online Version</td>
+      </tr>
+      <tr style="font-weight:bold; background:#FFFFFF;">
+        <td>BTSync Application</td>
+        <td>
+          <?if ($btsync_localapp != "Unknown"):?>
+            <span class="green-text"><?=$btsync_localapp?></span>
+          <?else:?>
+            <span class="red-text">UNKNOWN</span>
+          <?endif;?>
+        </td>
+        <td>
+          <?if ($btsync_remoteapp != "Unknown"):?>
+            <span class="green-text"><?=$btsync_remoteapp?></span>
+          <?else:?>
+            <span class="red-text">UNKNOWN</span>
+          <?endif;?>
+        </td>
       </tr>
       <tr style="font-weight:bold; background:#FFFFFF;">
         <td>BTSync Plugin</td>
@@ -632,7 +700,7 @@ $updates_exist = "false";
             <span class="red-text">UNKNOWN</span>
           <?endif;?>
         </td>
-      </tr>      
+      </tr>          
     </table>
   </div>  
 
@@ -715,6 +783,18 @@ $updates_exist = "false";
         <?$updates_exist="true"?>
       <?endif;?>
 
+      <?if (($btsync_remoteapp != $btsync_localapp) && ($btsync_localapp != "Unknown") && ($btsync_remoteapp != "Unknown")): ?>
+        <tr>
+          <td width="30%">
+          <form name="btsync_updateapp" method="POST" action="/update.htm" target="progressFrame">
+            <input type="hidden" name="cmd" value="/etc/rc.d/rc.btsync updateapp">
+            <input type="submit" name="runCmd" value="Update BTSync">
+          </form>
+          </td>
+          <td><span class="red-text">An update is available to BTSync</span></td>
+        </tr>
+        <?$updates_exist="true"?>
+      <?endif;?>
       <?if ($updates_exist=="false"):?>
         <tr>
           <td colspan="2" align="center">No updates available at this time</td>
@@ -772,11 +852,11 @@ $updates_exist = "false";
         </td>
       </tr>      
       <tr>
-        <td>BTSync Upload Limit:</td>
+        <td>BTSync Upload Limit (kB/s):</td>
         <td><input type="text" name="arg8" id="arg8" maxlength="60" value="<?=$btsync_cfg['UPLIMIT'];?>"></td>
       </tr>
       <tr>
-        <td>BTSync Download Limit:</td>
+        <td>BTSync Download Limit (kB/s):</td>
         <td><input type="text" name="arg9" id="arg9" maxlength="60" value="<?=$btsync_cfg['DNLIMIT'];?>"></td>
       </tr> 
     </table>
