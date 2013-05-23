@@ -935,6 +935,7 @@ chmod -R 775 &ram; 2>/dev/null
 
 # tidy tmp
 rm -f btsync_i386.tar.gz 2>/dev/null
+rm -f LICENSE.TXT
 
 # create btsync-writable directory for pid file
 echo "Creating writable PID dir..."
