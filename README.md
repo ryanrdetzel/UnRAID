@@ -50,7 +50,7 @@ From time to time, changes may be required to the plug-in.  eg. bug fixes, enhan
 Two plugins: NZBGet & Dropbox also allow for updates to the application.  As with the plugin update, the plugin will check for an update and display a message if one is available.
 
 ***
-## Plugin Specific Information - SSH
+## Specific Information for OpenSSH Plugin:
 
 It is important to understand the way this plug-in decides what users are allowed SSH access and there are a number of settings which work together to provide a flexible and yet secure set of login options.  Please spend a few minutes reading the details below as it will help you configure your system correctly.
 
@@ -123,7 +123,7 @@ Support requests should be made in the appropriate UnRAID forum.  Threads are at
 
 Air Video - (http://lime-technology.com/forum/index.php?topic=20049.0)<br>
 Beets - (http://lime-technology.com/forum/index.php?topic=27230.0)<br>
-BTSync - (http://lime-technology.com/forum/index.php?topic=27153.msg241607#msg241607)<br>
+BTSync - (http://lime-technology.com/forum/index.php?topic=27542.0)<br>
 DenyHosts - (http://lime-technology.com/forum/index.php?topic=20848.msg184998#msg184998)<br>
 Dropbox - (http://lime-technology.com/forum/index.php?topic=23287.0)<br>
 NZBGet - (http://lime-technology.com/forum/index.php?topic=23423.0)<br>
