@@ -159,6 +159,8 @@ echo "Starting beets.sh for $(basename $1)"
 
 BEETSDIR=/boot/config/plugins/beets
 export BEETSDIR
+FPCALC=/usr/local/sbin/fpcalc
+export FPCALC
 /usr/bin/beet -v import -q "$1"
 ]]>
 </INLINE>
