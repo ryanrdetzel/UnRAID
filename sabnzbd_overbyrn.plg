@@ -883,7 +883,7 @@ else {
             <input type="submit" name="runCmd" value="Update SABnzbd">
           </form>
           </td>
-          <td><span class="red-text">An update is available to SABnzbdt</span></td>
+          <td><span class="red-text">An update is available to SABnzbd</span></td>
         </tr>
         <?$updates_exist="true"?>
       <?endif;?>
