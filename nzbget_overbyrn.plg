@@ -3,7 +3,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY plugin "NZBget">
 <!ENTITY author "overbyrn">
-<!ENTITY plgver "1.5">
+<!ENTITY plgver "1.6">
 <!ENTITY pkg "/boot/packages">
 <!ENTITY plg "/boot/config/plugins/nzbget">
 <!ENTITY img "/boot/config/plugins/images">
