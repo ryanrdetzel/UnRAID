@@ -302,8 +302,8 @@ nzbget_install()
       mkdir $INSTALLDIR/ppscripts 2>/dev/null
       chown -R nobody:users $INSTALLDIR/ppscripts 2>/dev/null
       chmod -R 777 $INSTALLDIR/ppscripts 2>/dev/null
-      cp -pR /usr/local/nzbget/ppscripts $INSTALLDIR 2>/dev/null
     fi
+    cp -fpR /usr/local/nzbget/ppscripts $INSTALLDIR 2>/dev/null
   fi  
 
   #update nzbget.conf with installation specific values.  eg MainDir, post-processing script location, default password
