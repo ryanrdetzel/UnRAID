@@ -3,7 +3,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY plugin "Beets">
 <!ENTITY author "overbyrn">
-<!ENTITY plgver "1.2">
+<!ENTITY plgver "1.3">
 <!ENTITY pkg "/boot/packages">
 <!ENTITY plg "/boot/config/plugins/beets">
 <!ENTITY img "/boot/config/plugins/images">
@@ -169,7 +169,7 @@ export FPCALC
 <FILE Name="/boot/config/plugins/beets/config.yaml">
 <INLINE>
 <![CDATA[
-plugins: fetchart embedart convert scrub replaygain lastgenre chroma
+plugins: fetchart embedart convert scrub replaygain lastgenre chroma discogs
 directory: /mnt/user/Music Tagging
 library: /boot/config/plugins/beets/beets.blb
 art_filename: cover
@@ -857,8 +857,11 @@ rm -f ffmpeg.static.32bit.2013-04-06.tar.gz
 pip install pylast
 
 # install beets
-#pip install beets==dev
+#pip install beets
 pip install beets
+
+# install discogs client libs - needed for discogs plugin
+pip install discogs-client
 
 # install pyacoustid (needed for chromaprint)
 pip install pyacoustid
