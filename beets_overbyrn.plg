@@ -813,30 +813,6 @@ function validateForm() {
 </INLINE>
 </FILE>
 
-<!-- event handler -->
-<FILE Name="/usr/local/emhttp/plugins/beets/event/disks_mounted" Mode="0770">
-<INLINE>
-<![CDATA[
-#!/bin/bash
-#load plugin config
-source /boot/config/plugins/beets/beets.cfg
-
-#Start beets if enabled
-[ $SERVICE = "enable" ] && /etc/rc.d/rc.beets start
-]]>
-</INLINE>
-</FILE>
-
-<!-- event handler -->
-<FILE Name="/usr/local/emhttp/plugins/beets/event/unmounting_disks" Mode="0770">
-<INLINE>
-<![CDATA[
-#!/bin/bash
-/etc/rc.d/rc.beets stop
-]]>
-</INLINE>
-</FILE>
-
 <FILE Name="/tmp/plugin-install" Run="/bin/bash">
 <INLINE>
 # install beets + supporting files
