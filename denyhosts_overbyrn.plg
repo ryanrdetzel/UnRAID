@@ -306,7 +306,7 @@ denyhosts_appver()
 {
   case "$1" in
     'local')
-      VERSION=$(/usr/bin/env python /usr/local/denyhosts/denyhosts.py --version)
+      VERSION=$(/usr/bin/env python /usr/bin/denyhosts.py --version)
     ;;
     'remote')
       #APPVER=$(wget --no-check-certificate https://dl.dropbox.com/u/572553/UnRAID/plugin.version.control/denyhosts_appver.txt -q -O - |sed 's/_/-/g')
