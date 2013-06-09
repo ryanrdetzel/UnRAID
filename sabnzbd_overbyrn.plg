@@ -668,7 +668,6 @@ esac
 $sabnzbd_cfg = parse_ini_file( "/boot/config/plugins/sabnzbd/sabnzbd.cfg" );
 $sabnzbd_installed = file_exists( $sabnzbd_cfg["INSTALLDIR"] . "/SABnzbd.py" ) ? "yes" : "no";
 $sabnzbd_rollback = file_exists( "boot/config/plugins/sabnzbd_unplugged.plg.old" ) ? "yes" : "no";
-$sabnzbd_plgver = shell_exec ( "cat /boot/config/plugins/sabnzbd/plgver.txt" );
 $sabnzbd_localplg = shell_exec("/etc/rc.d/rc.sabnzbd getver plg local");
 $sabnzbd_remoteplg = shell_exec("/etc/rc.d/rc.sabnzbd getver plg remote");
 $sabnzbd_localapp = shell_exec("/etc/rc.d/rc.sabnzbd getver app local");
