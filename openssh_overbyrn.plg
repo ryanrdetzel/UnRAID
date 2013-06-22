@@ -272,7 +272,7 @@ write_config()
         chmod -R 0755 /home/$USERTEMP
       fi
       #echo "Assigning shell {/bin/bash} & home dir: {/home/$USERTEMP} to user $USERTEMP..."
-      usermod -d /home/$USERTEMP -s /bin/bash $USERTEMP
+      usermod -d /home/$USERTEMP -s /bin/bash $USERTEMP 2>/dev/null
 
       # Check for existance of "authorised_keys" file at /boot/config/plugin/ssh/{someuser}.  Copy to /home/{someuser} if found.  Enables
       # user to authenticate with private / public key pair.
