@@ -1,1 +1,937 @@
-<?xml version='1.0' standalone='yes'?><PLUGIN><!--This Plugin installs and provides Logitech Media Server (formally slimserver / squeezebox server) for unRAID.All dependencies are installed and everything is controlable from the webgui2011-08-15 1lt - first release2012-02-05 1.1 arberg - Made updates possible (perhaps), resolved some problems with lost data on reboot (slimserver.pl cachedir, prefsdir param)2012-03-18 1.2 arberg - Sets LANG=en_US.utf8 before starting slimserver.pl which seems to suffice, getting utf-8 for file name encoding (it would not be necessary to set this LANG if it was already defined as such in /etc/profile.d/lang.sh). Moved install to rc.d runlevel scripts executed on array-mount, to avoid install-problems on reboot.2012-10-08 1.3 MODIFIED - Updated and added latest 7.8.0 all credit for PLG file to original author2012-10-28 1.4 overbyrn - Reworked to auto-detect newest release by scraping logitech download web page. Early support for nightly builds also.  Simplified installation (removed symlinks, removed dedicated user - now runs as user nobody, reverted to flat application dir).  Reworded below comment on what the plugin does.  Updated wording throughout plugin to logitechmediaserver or LMS2012-12-27 1.5 overbyrn - added extra check/pid kill for spotifyd process.  was preventing array from stopping.  only valid if 3rd party spotify plugin is installedUpon first install, only the dependencies (eg. perl) and files necessary to manage the plugin from webgui are installed.  The application does not get downloaded until the user has chosen whether touse stable or nightly builds and manually performs the installation from webgui.Since the root file system in unRaid is ram-based, installing to anywhere outside of the array or acache disk is strongly discourgaged as all content will get lost upon re-boot.  The default installation path is /mnt/disk1/lms, although this is configurable from the webgui. The directory contains all the Logitech Media Server code and user data.  It is assumed the user will always have the installation on either an array or cache disk.  Uponsebsequent reboots, the plugin checks whether the it is "enabled" and attempts to start LMS in anarray start event handler.  This way, we can be certain the application will only be started oncethe array and therefore installation location has come online.Obviously the disk containing the install needs to be spun up when accessing music.--><FILE Name="/boot/packages/perl-5.10.1-i486-1.txz" Run="upgradepkg --install-new"><URL>-q --no-check-certificate https://dl.dropbox.com/u/572553/UnRAID/packages.generic/perl-5.10.1-i486-1.txz</URL></FILE><FILE Name="/boot/config/plugins/lms/lms.png"><URL>http://lime-technology.com/wiki/images/5/5e/Slimserver.png</URL></FILE><FILE Name="/boot/config/plugins/images/device_status.png"><URL>-q --no-check-certificate https://dl.dropbox.com/u/572553/UnRAID/plugin.images/device_status.png</URL></FILE><FILE Name="/boot/config/plugins/images/new_config.png"><URL>-q --no-check-certificate https://dl.dropbox.com/u/572553/UnRAID/plugin.images/new_config.png</URL></FILE><FILE Name="/boot/config/plugins/images/information.png"><URL>-q --no-check-certificate https://dl.dropbox.com/u/572553/UnRAID/plugin.images/information.png</URL></FILE><FILE Name="/boot/config/plugins/lms/lms.cfg"><INLINE><![CDATA[# lms configurationSERVICE="disable"PORT="9000"INSTALLDIR="/mnt/disk1/lms"INSTVER="x.x.x"NIGHTLY="no"]]></INLINE></FILE><FILE Name="/tmp/lms-cleanup" Run="/bin/bash"><INLINE><![CDATA[#Remove currently installed plugin files[ -d /usr/local/emhttp/plugins/lms/ ] && rm -rf /usr/local/emhttp/plugins/lms[ -d /var/run/lms/ ] && rm -rf /var/run/lms[ -f /var/log/plugins/lms/ ] && rm -f /var/log/plugins/lmsrm /tmp/lms-cleanup]]></INLINE></FILE><FILE Name="/etc/rc.d/rc.lms" Mode="0770"><INLINE><![CDATA[#!/bin/sh# start|stop|restart|enable|disable|install|buttonstart|update|getnetver lms.lms_start(){  # no-op if not enabled  if [ $SERVICE != "enable" ]; then    echo "Service is not enabled!"    sleep 1    return  fi     # no-op if already running  if [ -f /var/run/lms/lms.pid ]; then    echo "LMS already running!"    sleep 1    return  fi        # if not installed yet, call install function  if [ ! -f "$INSTALLDIR/slimserver.pl" ]; then    lms_install  fi  echo "Starting LMS..."  sleep 1  export LANG=en_US.utf8  CMDLINE="$INSTALLDIR/slimserver.pl --dameon --user nobody --group users --httpport $PORT --pidfile /var/run/lms/lms.pid --cachedir $INSTALLDIR/Cache  --prefsdir $INSTALLDIR/prefs > /dev/null 2>&1"  nohup sudo -u nobody $CMDLINE > /var/log/plugins/lms 2>&1 &  TIMER=0  while [ ! -e /var/run/lms/lms.pid ]; do    sleep 1    let TIMER=$TIMER+1    if [ $TIMER -gt 10 ]; then      echo -n "lms.pid not created for some reason"    break    fi  done    echo "... OK"  sleep 2}lms_stop(){     # no-op if already stopped  if [ ! -f /var/run/lms/lms.pid ]; then    return  fi      echo "Stopping LMS..."  sleep 1    kill -9 `cat /var/run/lms/lms.pid`    # remove copy of pid created during start  rm -f /var/run/lms/lms.pid    # go looking for spotify and kill if found. stems from spotify plugin (i think)  PID=$(ps -ef | grep spotifyd | grep -v grep | awk '{print $2}');  test "$PID" != "" && kill $PID    echo "... OK"  sleep 1}lms_restart(){  lms_stop  lms_start}lms_buttonstart(){  CONFIG="/boot/config/plugins/lms/lms.cfg"  if [ -f $CONFIG ]; then    sed -i "s/"disable"/"enable/"" $CONFIG    SERVICE=enable    lms_start  fi}write_config(){  echo "# lms configuration" > /boot/config/plugins/lms/lms.cfg  echo "SERVICE=\"$SERVICE\"" >> /boot/config/plugins/lms/lms.cfg  echo "PORT=\"$PORT\"" >> /boot/config/plugins/lms/lms.cfg  echo "INSTALLDIR=\"$INSTALLDIR\"" >> /boot/config/plugins/lms/lms.cfg  echo "INSTVER=\"$INSTVER\"" >> /boot/config/plugins/lms/lms.cfg  echo "NIGHTLY=\"$NIGHTLY\"" >> /boot/config/plugins/lms/lms.cfg}lms_enable(){  echo "Applying Settings ($1) ..."  sleep 2  SERVICE=$1 #enable  PORT="$2"  INSTALLDIR="$3"  NIGHTLY="$4"  PREVINST="$5"  write_config    if [ "$PREVINST" != "$INSTALLDIR" ]; then      if [ -f "$PREVINST/slimserver.pl" ]; then      echo "Previous installation location detected, moving/renaming..."      sleep 2      mv $PREVINST $INSTALLDIR      # need to change db loc in prefs      sed -i 's#.*dbsource: dbi:SQLite:dbname=.*#dbsource: dbi:SQLite:dbname='$INSTALLDIR/Cache/library.db'#' $INSTALLDIR/prefs/server.prefs    else      lms_install    fi  else    if [ ! -f "$INSTALLDIR/slimserver.pl" ]; then      lms_install    else      echo "Installation exists, updating config only"      sleep 2    fi  fi     lms_restart  echo "... OK"  sleep 1}lms_disable(){  echo "Applying Settings ($1) ..."  sleep 2  lms_stop  SERVICE=$1 #disable  PORT="$2"  INSTALLDIR="$3"  NIGHTLY="$4"  write_config  echo "... OK"  sleep 1}lms_install(){  echo "Installing LMS..."  sleep 1    # if local copy of application zip does not exist, download & store first  if ! test -n "$(find /boot/config/plugins/lms -maxdepth 1 -name 'logitechmediaserver*.tgz' -print -quit)"  then    echo "No local downloaded archive in plugin dir, checking online for latest version..."    sleep 3           if [ "$NIGHTLY" = "yes" ]; then            FILENAME=`wget -q http://downloads.slimdevices.com/nightly/?ver=7.8 -q -O - | grep -i LogitechMediaServer | sed -e 's/<[a-zA-Z\/][^>]*>//g' | grep logitechmediaserver-[0-9].[0-9].[0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9].tgz`      PARTPATH=`wget -q http://downloads.slimdevices.com/nightly/?ver=7.8 -q -O - | grep -i $FILENAME | cut -d\" -f2 | awk -F\/ '{print "/"$1"/"$2"/"$3"/"}'`      VERSION=`echo $FILENAME | awk -F\- '{print $2}'`      BUILDREV=`echo $FILENAME | awk -F\- '{print $3}' | cut -f1 -d\.`          echo "Downloading nightly $FILENAME to /boot/config/plugins/lms..."      wget -q -P /boot/config/plugins/lms http://downloads.slimdevices.com/nightly$PARTPATH$FILENAME         INSTVER=$VERSION-$BUILDREV	      else         LATESTSTABLE=`wget -q http://downloads.slimdevices.com -q -O - | grep LogitechMediaServer | awk '{print $5}' | cut -d\" -f2 | sed 's,/$,,' | sort -V -r | sed q`   # eg. LogitechMediaServer_v7.7.2      VERSION=`echo $LATESTSTABLE | cut -f3- -d\v`  # eg. 7.7.2      FILENAME="logitechmediaserver-$VERSION.tgz"   # eg. logitechmediaserver-7.7.2.tgz      echo "Latest stable version : $VERSION"      sleep 2       echo "Downloading $FILENAME to /boot/config/plugins/lms..."      wget -q -P /boot/config/plugins/lms http://downloads.slimdevices.com/$LATESTSTABLE/$FILENAME	  INSTVER=$VERSION    fi    echo "Download complete..."    sleep 2  fi    # extract and remove unnecessary files  echo "Extracting LMS application to /tmp..."  tar -C /tmp -zxvf /boot/config/plugins/lms/logitechmediaserver-*.tgz > /dev/null 2>&1    echo "Cleaning unnecessary files..."  rm -rf /tmp/logitechmediaserver*/Changelog*  rm -rf /tmp/logitechmediaserver*/License*  rm -rf /tmp/logitechmediaserver*/Bin/arm-linux*  rm -rf /tmp/logitechmediaserver*/Bin/darwin*  rm -rf /tmp/logitechmediaserver*/Bin/i386-freebsd-64int*  rm -rf /tmp/logitechmediaserver*/Bin/powerpc-linux*  rm -rf /tmp/logitechmediaserver*/Bin/sparc-linux*  sleep 2    # move to final install location  echo "Moving LMS application to $INSTALLDIR..."  mv /tmp/logitechmediaserver-* $INSTALLDIR      if [ ! -d "$INSTALLDIR/playlists" ]; then    echo "Creating default playlist directory ($INSTALLDIR/playlists)"    mkdir "$INSTALLDIR/playlists"    sleep 2  fi    # change permissions and ownership  echo "Changing ownership (nobody) & permissions (0770 rwxrwx---)"  chown -R nobody:users $INSTALLDIR  chmod -R 0770 $INSTALLDIR  sleep 2    #update config file with installed version  write_config    echo "... OK"  sleep 1}lms_update() {   lms_stop    echo "Removing old LMS archive file from plugin directory..."  sleep 2  rm /boot/config/plugins/lms/logitechmediaserver*.tgz    echo "Renaming old LMS install to save user data during update..."  sleep 2  mv $INSTALLDIR $INSTALLDIR.lmsbak      lms_install    echo "Restoring LMS application data after update..."  sleep 2  mv $INSTALLDIR.lmsbak/prefs $INSTALLDIR  mv $INSTALLDIR.lmsbak/Logs $INSTALLDIR  mv $INSTALLDIR.lmsbak/Cache $INSTALLDIR  mv $INSTALLDIR.lmsbak/playlists/* $INSTALLDIR/playlists    echo "Removing old LMS installation..."  sleep 2  rm -rf $INSTALLDIR.lmsbak    lms_start}lms_getnetver(){  case "$1" in    'stable')      local LATESTSTABLE=`wget -q http://downloads.slimdevices.com -q -O - | grep LogitechMediaServer | awk '{print $5}' | cut -d\" -f2 | sed 's,/$,,' | sort -V -r | sed q`   # eg. LogitechMediaServer_v7.7.2      local VERSION=`echo $LATESTSTABLE | cut -f3- -d\v`    ;;    'nightly')      local FILENAME=`wget -q http://downloads.slimdevices.com/nightly/?ver=7.8 -q -O - | grep -i LogitechMediaServer | sed -e 's/<[a-zA-Z\/][^>]*>//g' | grep logitechmediaserver-[0-9].[0-9].[0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9].tgz`      local BUILDREV=`echo $FILENAME | awk -F\- '{print $3}' | cut -f1 -d\.`      local VERSION=`echo $FILENAME | awk -F\- '{print $2}'`-$BUILDREV    ;;    *)      local VERSION="unknown"  esac  # nb: remember to use -n to remove CRLF as otherwise php var needs TRIM on the shell_exec line  echo -n "$VERSION"   }# read our configurationsource /boot/config/plugins/lms/lms.cfgcase "$1" in  'start')    lms_start  ;;  'stop')    lms_stop  ;;  'restart')    lms_restart  ;;  'enable')    lms_enable $1 $2 $3 $4 $5  ;;  'disable')    lms_disable $1 $2 $3 $4 $5  ;;  'install')    lms_install  ;;  'buttonstart')    lms_buttonstart  ;;  'update')    lms_update    ;;    'getnetver')    lms_getnetver $2    ;;     *)    echo "usage $0 start|stop|restart|enable|disable|install|buttonstart|update|getnetver"esac]]></INLINE></FILE><FILE Name="/usr/local/emhttp/plugins/lms/lms.png"><LOCAL>/boot/config/plugins/lms/lms.png</LOCAL></FILE><FILE Name="/usr/local/emhttp/plugins/lms/device_status.png"><LOCAL>/boot/config/plugins/images/device_status.png</LOCAL></FILE><FILE Name="/usr/local/emhttp/plugins/lms/new_config.png"><LOCAL>/boot/config/plugins/images/new_config.png</LOCAL></FILE><FILE Name="/usr/local/emhttp/plugins/lms/information.png"><LOCAL>/boot/config/plugins/images/information.png</LOCAL></FILE><FILE Name="/usr/local/emhttp/plugins/lms/lms.page"><INLINE><![CDATA[Menu="NetworkServices"Icon="lms.png"Version="1.4"Author="LimeTech-Modded"Type="php"Title="Logitech Media Server"]]></INLINE></FILE><FILE Name="/usr/local/emhttp/plugins/lms/lms.php"><INLINE><![CDATA[<?PHP$lms_cfg = parse_ini_file("/boot/config/plugins/lms/lms.cfg");$lms_curinstdir = $lms_cfg['INSTALLDIR'];$lms_installed = is_dir( $lms_cfg['INSTALLDIR']) ? "yes" : "no";if ($lms_installed=="yes") {  $lms_running = file_exists("/var/run/lms/lms.pid") ? "yes" : "no";  if ($lms_cfg['NIGHTLY'] == 'yes') {    $lms_netver = shell_exec("/etc/rc.d/rc.lms getnetver nightly");  }  else {    $lms_netver = shell_exec("/etc/rc.d/rc.lms getnetver stable");  } }?><html><head></head><body><div style="width: 49%; float:left; border: 0px solid black;">  <div id="title">    <span class="left">Status:&nbsp;<img src='/plugins/lms/device_status.png'>      <?if ($lms_installed=="yes"):?>        <?if ($lms_running=="yes"):?>              <span class="green"><a href="http://<?=$var['NAME'];?>:<?=$lms_cfg['PORT'];?>" style="color: green; text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'" title="Click here to open Logitech Media Server web page" target="_blank"><span class="green"><b>LMS is RUNNING on port <?=$lms_cfg['PORT'];?></b></span></a></span>        <?else:?>          <span class="red"><b>LMS is NOT RUNNING</b></span>        <?endif;?>      <?else:?>         <span class="red"><b>LMS is NOT INSTALLED</b></span>      <?endif;?>      </span>  </div>    <?if ($lms_installed=="yes"):?>    <?if ($lms_running=="yes"):?>      <div style="position:relative;float:left;width:50%;text-align:right; margin-bottom:24px">        <form name="lms_start_stop" method="POST" action="/update.htm" target="progressFrame">          <input type="hidden" name="cmd" value="/etc/rc.d/rc.lms stop">          <input type="submit" name="runCmd" value="Stop">        </form>      </div>      <div style="position:relative;float:left;width:50%;margin-bottom:24px">        <form name="lms_restart" method="POST" action="/update.htm" target="progressFrame">          <input type="hidden" name="cmd" value="/etc/rc.d/rc.lms restart">          <input type="submit" name="runCmd" value="Restart">        </form>      </div>              <?else:?>      <div style="position:relative;float:left;width:100%;text-align:center;margin-bottom:24px">        <form name="lms_start" method="POST" action="/update.htm" target="progressFrame">          <input type="hidden" name="cmd" value="/etc/rc.d/rc.lms buttonstart">          <input type="submit" name="runCmd" value="Start">        </form>      </div>    <?endif;?>  <?else:?>    <div style="position:relative;float:left;width:100%;text-align:center;margin-bottom:24px">      <form name="lms_install" method="POST" action="/update.htm" target="progressFrame">        <input type="hidden" name="cmd" value="/etc/rc.d/rc.lms install">                 <input type="submit" name="runCmd" value="Install">      </form>    </div>  <?endif;?>  <center><hr size="3" width="50%" color="grey"></center>  <?if ($lms_installed=="yes"):?>    <?if (($lms_cfg[INSTVER] != $lms_netver) && $lms_cfg[INSTVER] != "x.x.x"): ?>      <center>        <form name="lms_settings" method="POST" action="/update.htm" target="progressFrame">          <input type="hidden" name="cmd" value="/etc/rc.d/rc.lms update">          <p style="color:blue;margin-left:10px;">Update of Logitech Media Server available to version: <b><?=$lms_netver;?>&nbsp<?=($lms_cfg['NIGHTLY']=="no" ? '(stable)' : '(nightly)');?></b></p>          <hr size="3" width="50%" color="grey" style="margin-bottom:15px">          <input type="submit" name="runCmd" value="Update">        </form>        </center>       <?else:?>       <p style="margin-left:10px;">LMS Version: <?=$lms_cfg[INSTVER];?>&nbsp<?=($lms_cfg['NIGHTLY']=="no" ? '(stable)' : '(nightly)');?>&nbspinstalled.&nbsp&nbspNo upgrade available at this time</p>    <?endif; ?>  <?endif; ?>    </div><div style="width: 49%; float:right; border: 0px solid black;">  <div id="title">    <span class="left">Configuration:&nbsp;<img src='/plugins/lms/new_config.png'></span>  </div>  <form name="lms_settings" method="POST" action="/update.htm" target="progressFrame" onsubmit="validateForm();">    <input type="hidden" name="cmd" value="/etc/rc.d/rc.lms">    <input type="hidden" name="arg5" value="<?=$lms_curinstdir;?>">    <table class="settings">      <tr>        <td>Enable LMS Service:</td>        <td>          <select name="arg1" id="arg1" size="1">            <?=mk_option($lms_cfg['SERVICE'], "disable", "No");?>            <?=mk_option($lms_cfg['SERVICE'], "enable", "Yes");?>          </select>        </td>      </tr>      <tr>        <td>LMS Web Port:</td>        <td><input type="text" name="arg2" id="arg2" maxlength="60" value="<?=$lms_cfg['PORT'];?>"></td>      </tr>      <tr>        <td>LMS Installation Directory:</td>        <td><input type="text" name="arg3" id="arg3" maxlength="60" value="<?=$lms_cfg['INSTALLDIR'];?>"></td>      </tr>      <tr>      <td>Use Nightlies:</td>      <td>        <select name="arg4" size="1">          <?=mk_option($lms_cfg['NIGHTLY'], "no", "No");?>          <?=mk_option($lms_cfg['NIGHTLY'], "yes", "Yes");?>        </select>        <img src="/plugins/lms/information.png" title="Installing from other than stable versions is not recommended. Use this option at your own risk!"/>      </td>      </tr>    </table>    <div align="center">      <hr size="3" align="center" width="75%" color="grey" style="margin-top:20px;margin-bottom:18px">        <input type="submit" name="runCmd" value="Apply"><button type="button" onClick="done();">Done</button>    </div>      </form>  <br /></div><script type="text/javascript">function validateForm() {  document.getElementById('arg2').disabled = false;  document.getElementById('arg3').disabled = false;  document.getElementById('arg4').disabled = false;}function checkRUNNING(form) {  if ("<?=$lms_running;?>" == "yes") {    form.arg2.disabled = true;    form.arg3.disabled = true;    form.arg4.disabled = true;  }}checkRUNNING(document.lms_settings);</script></body></html>]]></INLINE></FILE><!-- event handler --><FILE Name="/usr/local/emhttp/plugins/lms/event/disks_mounted" Mode="0770"><INLINE><![CDATA[#!/bin/bash#load plugin configsource /boot/config/plugins/lms/lms.cfg#Start lms if enabled[ $SERVICE = "enable" ] && /etc/rc.d/rc.lms start]]></INLINE></FILE><!-- event handler --><FILE Name="/usr/local/emhttp/plugins/lms/event/unmounting_disks" Mode="0770"><INLINE><![CDATA[#!/bin/bash/etc/rc.d/rc.lms stop]]></INLINE></FILE><FILE Name="/tmp/lms-install" Run="/bin/bash"><INLINE><![CDATA[# create lms-writable directory for pid fileif [ ! -e /var/run/lms ]; then  mkdir -m 0777 /var/run/lms  chown nobody:users /var/run/lmsfirm /tmp/lms-install]]></INLINE></FILE><FILE Name="/var/log/plugins/lms"><INLINE><![CDATA[]]></INLINE></FILE></PLUGIN>
+<?xml version='1.0' standalone='yes'?>
+
+<!DOCTYPE PLUGIN [
+<!ENTITY plugin "LMS">
+<!ENTITY author "overbyrn">
+<!ENTITY plgver "1.6">
+<!ENTITY pkg "/boot/packages">
+<!ENTITY plg "/boot/config/plugins/lms">
+<!ENTITY img "/boot/config/plugins/images">
+<!ENTITY gui "/usr/local/emhttp/plugins">
+<!ENTITY url1 "https://raw.github.com/overbyrn/UnRAID/master">
+<!ENTITY url2 "https://dl.dropbox.com/u/572553/UnRAID">
+<!ENTITY dev "false"><!-- set to "true" during plugin development -->
+]>
+
+<PLUGIN>
+<!--
+Copyright 2013, Rich Manton (overbyrn)
+
+This Plugin installs and provides Logitech Media Server support for unRAID.
+
+Plugin file locations:
+ /boot/plugins/lms_overbyrn.plg                                                 # this file
+ /tmp/plugin-prepare                                                            # network readiness script
+ /tmp/plugin-chkcfg                                                             # plugin upgrade check script
+ /tmp/plugin-cleanup                                                            # deletion script
+ /tmp/plugin-install                                                            # installation script
+ 
+ /boot/config/plugins/lms/lms-{ver}-{rev}.tgz                                   # Logitech Media Server Application
+ 
+ /boot/packages/perl-5.10.1-i486-1.txz                                          # package dependency
+ 
+ /boot/config/plugins/lms/lms.png                                               # icon file (copied to webgui plugin dir)
+ /boot/config/plugins/images/device_status.png                                  # icon file (copied to webgui plugin dir)
+ /boot/config/plugins/images/new_config.png                                     # icon file (copied to webgui plugin dir)
+ /boot/config/plugins/images/information.png                                    # icon file (copied to webgui plugin dir)
+ 
+ /boot/config/plugins/lms/lms.cfg                                               # non-volatile configuration
+ /etc/rc.d/rc.lms                                                               # plugin control script
+ /usr/local/emhttp/plugins/lms/lms.page                                         # page file for webGui menu system
+ /usr/local/emhttp/plugins/lms/lms.php                                          # webGui page code
+ /usr/local/emhttp/plugins/lms/event/disks_mounted                              # script to execute for emhttp event
+ /usr/local/emhttp/plugins/lms/event/unmounting_disks                           # script to execute for emhttp event
+ 
+ /var/log/plugins/lms                                                           # created upon install success
+ /usr/local/lms                                                                 # application installation location
+ /var/run/lms/lms.pid                                                           # run-time pid file
+
+-->
+
+<FILE Name="/tmp/plugin-prepare" Run="/bin/bash">
+<INLINE>
+# Wait until network is ready
+timer=30
+while [ $timer -gt 0 ]; do
+  gateway=$(route -n | awk '/^0.0.0.0/ {print $2}')
+  if [ -n "$gateway" ] &amp;&amp; [ $(ping -q -n -c 1 $gateway | awk -F, '/received/ {print $2}' | awk '{print $1}') -eq 1 ]; then
+    break
+  fi
+  timer=$((timer-1))
+  sleep 1
+done
+if [ $timer -eq 0 ]; then
+  echo "No network communication !!!"
+fi
+# Remove this script
+rm -f /tmp/plugin-prepare
+</INLINE>
+</FILE>
+
+<FILE Name="&plg;/lms.png">
+<URL>-q --no-check-certificate &url2;/plugin.images/lms.png</URL>
+</FILE>
+
+<FILE Name="&img;/device_status.png">
+<URL>-q --no-check-certificate &url2;/plugin.images/device_status.png</URL>
+</FILE>
+
+<FILE Name="&img;/new_config.png">
+<URL>-q --no-check-certificate &url2;/plugin.images/new_config.png</URL>
+</FILE>
+
+<FILE Name="&img;/information.png">
+<URL>-q --no-check-certificate &url2;/plugin.images/information.png</URL>
+</FILE>
+
+<FILE Name="&pkg;/perl-5.10.1-i486-1.txz" Run="upgradepkg --install-new">
+<URL>-q --no-check-certificate &url2;/packages.generic/perl-5.10.1-i486-1.txz</URL>
+</FILE>
+
+<FILE Name="/tmp/plugin-cleanup" Run="/bin/bash">
+<INLINE>
+# delete file but don't warn if file does not exist
+rmNoWarn() {
+  test -e $1 &amp;&amp; rm $1 2>/dev/null
+}
+
+# delete directory but don't warn if directory does not exist
+rmRecursiveNoWarn() {
+  test -e $1 &amp;&amp; rm -r $1 2>/dev/null
+}
+
+#Remove currently installed plugin files
+rmNoWarn /etc/rc.d/rc.lms                             # control script
+rmNoWarn /var/run/lms/lms.pid                         # stale pid file
+rmRecursiveNoWarn /usr/local/emhttp/plugins/lms       # lms unraid webgui integration files
+rmNoWarn /var/log/plugins/lms                         # record of previous plugin installation
+
+rm /tmp/plugin-cleanup
+</INLINE>
+</FILE>
+
+<FILE Name="/boot/config/plugins/lms/lms.cfg">
+<INLINE>
+<![CDATA[
+# lms configuration
+SERVICE="disable"
+PORT="9000"
+INSTALLDIR="/mnt/disk1/lms"
+BRANCH="stable"
+]]>
+</INLINE>
+</FILE>
+
+<FILE Name="/tmp/plugin-chkcfg" Run="/bin/bash">
+<INLINE>
+#!/bin/bash
+
+# if found - remove depreciated param INSTVER
+paramchk=$(cat /boot/config/plugins/lms/lms.cfg | grep INSTVER)
+if [[ ! -z $paramchk ]]; then
+  sed -i '/INSTVER/d' &plg;/lms.cfg
+fi
+
+# if found - rename NIGHTLY param to BRANCH to better signify its usage. also alters variable value from yes/no to stable/nightly accordingly.
+paramchk=$(cat /boot/config/plugins/lms/lms.cfg | grep NIGHTLY)
+if [[ ! -z $paramchk ]]; then  # param exists in cfg
+  sed -i "s/"NIGHTLY"/"BRANCH/"" /boot/config/plugins/lms/lms.cfg
+  sed -i "s/"BRANCH=\"no\""/"BRANCH=\"stable\"/"" /boot/config/plugins/lms/lms.cfg
+  sed -i "s/"BRANCH=\"yes\""/"BRANCH=\"nightly\"/"" /boot/config/plugins/lms/lms.cfg
+fi
+
+rm /tmp/plugin-chkcfg
+</INLINE>
+</FILE>
+
+
+<FILE Name="/etc/rc.d/rc.lms" Mode="0770">
+<INLINE>
+<![CDATA[
+#!/bin/bash
+# start|stop|restart|enable|disable|install|buttonstart|storagesize|datacheck|updateplg|updateapp|getver lms.
+
+lms_start()
+{
+  # no-op if not enabled
+  if [ $SERVICE != "enable" ]; then
+    echo "Service is not enabled!"
+    sleep 1
+    return
+  fi
+   
+  # no-op if already running
+  if [ -f /var/run/lms/lms.pid ]; then
+    echo "LMS already running!"
+    sleep 1
+    return
+  fi   
+   
+  # if not installed yet, call install function
+  if [ ! -f "$INSTALLDIR/slimserver.pl" ]; then
+    lms_install
+  fi
+
+  echo "Starting LMS..."
+  sleep 1
+
+  export LANG=en_US.utf8
+  CMDLINE="$INSTALLDIR/slimserver.pl --dameon --user nobody --group users --httpport $PORT --pidfile /var/run/lms/lms.pid --cachedir $INSTALLDIR/Cache  --prefsdir $INSTALLDIR/prefs > /dev/null 2>&1"
+  nohup sudo -u nobody $CMDLINE > /var/log/plugins/lms 2>&1 &
+
+  TIMER=0
+  while [ ! -e /var/run/lms/lms.pid ]; do
+    sleep 1
+    let TIMER=$TIMER+1
+    if [ $TIMER -gt 10 ]; then
+      echo -n "lms.pid not created for some reason"
+    break
+    fi
+  done
+  
+  echo "... OK"
+  sleep 2
+}
+
+lms_stop()
+{   
+  # no-op if already stopped
+  if [ ! -f /var/run/lms/lms.pid ]; then
+    return
+  fi 
+   
+  echo "Stopping LMS..."
+  sleep 1
+  
+  kill `cat /var/run/lms/lms.pid`
+  
+  # remove copy of pid created during start
+  rm -f /var/run/lms/lms.pid  
+
+  # go looking for spotify and kill if found. stems from spotify plugin (i think)
+  PID=$(ps -ef | grep spotifyd | grep -v grep | awk '{print $2}');
+  test "$PID" != "" && kill $PID
+  
+  echo "... OK"
+  sleep 1
+}
+
+lms_restart()
+{
+  lms_stop
+  lms_start
+}
+
+lms_buttonstart()
+{
+  CONFIG="/boot/config/plugins/lms/lms.cfg"
+  if [ -f $CONFIG ]; then
+    sed -i "s/"disable"/"enable/"" $CONFIG
+    SERVICE=enable
+    lms_start
+  fi
+}
+
+write_config()
+{
+  echo "# lms configuration" > /boot/config/plugins/lms/lms.cfg
+  echo "SERVICE=\"$SERVICE\"" >> /boot/config/plugins/lms/lms.cfg
+  echo "PORT=\"$PORT\"" >> /boot/config/plugins/lms/lms.cfg
+  echo "INSTALLDIR=\"$INSTALLDIR\"" >> /boot/config/plugins/lms/lms.cfg
+  echo "BRANCH=\"$BRANCH\"" >> /boot/config/plugins/lms/lms.cfg
+}
+
+lms_enable()
+{
+  echo "Applying Settings ($1) ..."
+  sleep 2
+  SERVICE=$1 #enable
+  PORT="$2"
+  INSTALLDIR="$3"
+  BRANCH="$4"
+  PREVINST="$5"
+  write_config
+  
+  if [ "$PREVINST" != "$INSTALLDIR" ]; then  
+    if [ -f "$PREVINST/slimserver.pl" ]; then
+      echo "Previous installation location detected, moving/renaming..."
+      sleep 2
+      mv $PREVINST $INSTALLDIR
+      # need to change db loc in prefs
+      sed -i 's#.*dbsource: dbi:SQLite:dbname=.*#dbsource: dbi:SQLite:dbname='$INSTALLDIR/Cache/library.db'#' $INSTALLDIR/prefs/server.prefs
+    else
+      lms_install
+    fi
+  else
+    if [ ! -f "$INSTALLDIR/slimserver.pl" ]; then
+      lms_install
+    else
+      echo "Installation exists, updating config only"
+      sleep 2
+    fi
+  fi 
+  
+  lms_restart
+  echo "... OK"
+  sleep 1
+}
+
+lms_disable()
+{
+  echo "Applying Settings ($1) ..."
+  sleep 2
+  lms_stop
+  SERVICE=$1 #disable
+  PORT="$2"
+  INSTALLDIR="$3"
+  BRANCH="$4"
+  write_config
+  echo "... OK"
+  sleep 1
+}
+
+lms_install()
+{
+  echo "Installing LMS..."
+  sleep 1
+  
+  # if local copy of application zip does not exist, download & store first
+  if ! test -n "$(find /boot/config/plugins/lms -maxdepth 1 -name 'logitechmediaserver*.tgz' -print -quit)"
+  then
+    echo "No local downloaded archive in plugin dir, checking online for latest version..."
+    sleep 3
+       
+    if [ "$BRANCH" = "nightly" ]; then      
+      FILENAME=`wget -q http://downloads.slimdevices.com/nightly/?ver=7.8 -q -O - | grep -i LogitechMediaServer | sed -e 's/<[a-zA-Z\/][^>]*>//g' | grep logitechmediaserver-[0-9].[0-9].[0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9].tgz`
+      PARTPATH=`wget -q http://downloads.slimdevices.com/nightly/?ver=7.8 -q -O - | grep -i $FILENAME | cut -d\" -f2 | awk -F\/ '{print "/"$1"/"$2"/"$3"/"}'`
+      VERSION=`echo $FILENAME | awk -F\- '{print $2}'`
+      BUILDREV=`echo $FILENAME | awk -F\- '{print $3}' | cut -f1 -d\.`    
+      echo "Downloading nightly $FILENAME to /boot/config/plugins/lms..."
+      wget -q -P /boot/config/plugins/lms http://downloads.slimdevices.com/nightly$PARTPATH$FILENAME   
+      INSTVER=$VERSION-$BUILDREV	  
+    else   
+      LATESTSTABLE=`wget -q http://downloads.slimdevices.com -q -O - | grep LogitechMediaServer | awk '{print $5}' | cut -d\" -f2 | sed 's,/$,,' | sort -V -r | sed q`   # eg. LogitechMediaServer_v7.7.2
+      VERSION=`echo $LATESTSTABLE | cut -f3- -d\v`  # eg. 7.7.2
+      FILENAME="logitechmediaserver-$VERSION.tgz"   # eg. logitechmediaserver-7.7.2.tgz
+      echo "Latest stable version : $VERSION"
+      sleep 2 
+      echo "Downloading $FILENAME to /boot/config/plugins/lms..."
+      wget -q -P /boot/config/plugins/lms http://downloads.slimdevices.com/$LATESTSTABLE/$FILENAME
+	  INSTVER=$VERSION
+    fi
+    echo "Download complete..."
+    sleep 2
+  fi
+  
+  # extract and remove unnecessary files
+  echo "Extracting LMS application to /tmp..."
+  tar -C /tmp -zxvf /boot/config/plugins/lms/logitechmediaserver-*.tgz > /dev/null 2>&1
+  
+  echo "Cleaning unnecessary files..."
+  rm -rf /tmp/logitechmediaserver*/Changelog*
+  rm -rf /tmp/logitechmediaserver*/License*
+  rm -rf /tmp/logitechmediaserver*/Bin/arm-linux*
+  rm -rf /tmp/logitechmediaserver*/Bin/darwin*
+  rm -rf /tmp/logitechmediaserver*/Bin/i386-freebsd-64int*
+  rm -rf /tmp/logitechmediaserver*/Bin/powerpc-linux*
+  rm -rf /tmp/logitechmediaserver*/Bin/sparc-linux*
+  sleep 2
+  
+  # move to final install location
+  echo "Moving LMS application to $INSTALLDIR..."
+  mv /tmp/logitechmediaserver-* $INSTALLDIR  
+  
+  if [ ! -d "$INSTALLDIR/playlists" ]; then
+    echo "Creating default playlist directory ($INSTALLDIR/playlists)"
+    mkdir "$INSTALLDIR/playlists"
+    sleep 2
+  fi
+  
+  # change permissions and ownership
+  echo "Changing ownership (nobody) & permissions (0777 rwxrwxrwx)"
+  chown -R nobody:users $INSTALLDIR
+  chmod -R 0777 $INSTALLDIR
+  sleep 2
+  
+  #update config file with installed version
+  write_config
+  
+  echo "... OK"
+  sleep 1
+}
+
+lms_storagesize()
+{
+  if [ $1 ] && [ $2 ]; then
+    if [ -d $1 ]; then
+      INST=`du -sh $1 | cut -f1`
+    elif [ -f $1 ]; then
+      INST=`ls -lah $1 | awk '{ print $5}'`
+    fi
+
+    if [ -d $2 ]; then
+      DAT=`du -sh $2 | cut -f1`
+    elif [ -f $2 ]; then
+      DAT=`ls -lah $2 | awk '{ print $5}'`
+    fi
+
+    if [ $1 == $2 ]; then
+	  echo "<p>Storage memory usage: install + data directory: <span class="green-text"><b>$INST</b></span></p>"
+    else
+	  echo "<p>Storage memory usage: install directory: <span class="green-text"><b>$INST</b></span></p>"
+    fi
+  elif [ $1 ]; then
+    if [ -d $1 ]; then
+      INST=`du -sh $1 | cut -f1`
+    elif [ -f $1 ]; then
+      INST=`ls -lah $1 | awk '{ print $5}'`
+    fi
+	echo "<p>Logitech Media Server Storage Usage: <span class="green-text"><b>$INST</b></span></p>"
+  fi
+}
+
+lms_datacheck()
+{
+  array=( ramfs proc tempfs sysfs )
+  fs=$( stat -f -c '%T' $INSTALLDIR )
+  if [ "$fs" = "msdos" ]; then
+    echo "<p style="color:red\;"><b>WARNING:</b> Your data is located on your flash drive. This can decrease the life span of your flash device!</p>"
+  else
+    for i in "${array[@]}"
+    do
+      if [ $i = $fs ]; then
+        echo "<p style="color:red\;"><b>WARNING:</b> Your data is not persistent and WILL NOT survive a reboot. Please locate data on persistent storage. eg. cache/array disk</p>"
+        break
+      else
+        echo "<p style="color:green\;">Your data will persist after a reboot</p>"
+        break
+      fi
+    done
+  fi
+}
+
+lms_updateplg()
+{
+  if [ -f /boot/config/plugins/lms_overbyrn.plg ]; then
+    lms_stop;
+    echo "Downloading plugin..."
+    wget -q -P /tmp --no-check-certificate https://raw.github.com/overbyrn/UnRAID/master/lms_overbyrn.plg 2>/dev/null
+    if [ ! -f /tmp/lms_overbyrn.plg ]; then
+      echo "Download failed, update aborted!"
+      sleep 2
+    else
+      echo "...OK"
+      sleep 1
+      echo  "Upgrading plugin..."
+      sleep 1
+      mv -f /boot/config/plugins/lms_overbyrn.plg /boot/config/plugins/lms/lms_overbyrn.plg.sav 2>/dev/null
+      mv -f /tmp/lms_overbyrn.plg /boot/config/plugins/lms_overbyrn.plg 2>/dev/null
+      /usr/local/sbin/installplg /boot/config/plugins/lms_overbyrn.plg 2>/dev/null
+      echo "...OK"
+      sleep 1
+    fi
+    lms_start;
+  fi
+}
+
+lms_updateapp()
+{
+  lms_stop
+  
+  echo "Removing old LMS archive file from plugin directory..."
+  sleep 2
+  rm /boot/config/plugins/lms/logitechmediaserver*.tgz
+  
+  echo "Renaming old LMS install to save user data during update..."
+  sleep 2
+  mv $INSTALLDIR $INSTALLDIR.lmsbak  
+  
+  lms_install
+  
+  echo "Restoring LMS application data after update..."
+  sleep 2
+  mv $INSTALLDIR.lmsbak/prefs $INSTALLDIR
+  mv $INSTALLDIR.lmsbak/Logs $INSTALLDIR
+  mv $INSTALLDIR.lmsbak/Cache $INSTALLDIR
+  mv $INSTALLDIR.lmsbak/playlists/* $INSTALLDIR/playlists
+  
+  echo "Removing old LMS installation..."
+  sleep 2
+  rm -rf $INSTALLDIR.lmsbak
+  
+  lms_start  
+
+}
+
+lms_plgver()
+{
+  case "$1" in
+    'local')
+      if [ -f /boot/config/plugins/lms_overbyrn.plg ]; then
+	    VERSION=$(grep "<\!ENTITY plgver " /boot/config/plugins/lms_overbyrn.plg | cut -d\" -f2)
+	  else
+	    VERSION=Unknown
+	  fi
+    ;;
+    'remote')
+      VERSION=$(wget --no-check-certificate -q https://raw.github.com/overbyrn/UnRAID/master/lms_overbyrn.plg -O - | grep "<\!ENTITY plgver " | cut -d\" -f2)
+      if [ "$VERSION" == "" ]; then
+        VERSION=Unknown
+      fi
+    ;;
+  esac
+  echo -n "$VERSION"
+}
+
+lms_appver()
+{
+  case "$1" in
+    'local')
+      REVISION=$(cat $INSTALLDIR/revision.txt | awk NR==1)
+      VERSION="v$(grep -F 'our $VERSION' $INSTALLDIR/slimserver.pl | cut -d\' -f2) revision $REVISION"
+	  if [ "$VERSION" == "" ]; then
+        VERSION=Unknown
+	  fi	
+    ;;
+    'remote')
+      if [ "$BRANCH" = "stable" ]; then
+          local LATESTSTABLE=$(wget -q http://downloads.slimdevices.com -q -O - | grep LogitechMediaServer | awk '{print $5}' | cut -d\" -f2 | sed 's,/$,,' | sort -V -r | sed q)   # eg. LogitechMediaServer_v7.7.2
+          local VERSION=$(echo $LATESTSTABLE | cut -f3- -d\v)
+      fi
+      if [ "$BRANCH" = "nightly" ]; then
+          local FILENAME=$(wget -q http://downloads.slimdevices.com/nightly/?ver=7.8 -q -O - | grep -i LogitechMediaServer | sed -e 's/<[a-zA-Z\/][^>]*>//g' | grep logitechmediaserver-[0-9].[0-9].[0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9].tgz)
+          local BUILDREV=$(echo $FILENAME | awk -F\- '{print $3}' | cut -f1 -d\.)
+          local VERSION="v$(echo $FILENAME | awk -F\- '{print $2}') revision $BUILDREV"
+      fi    
+      if [ "$VERSION" == "" ]; then
+        VERSION=Unknown
+      fi
+    ;;
+  esac
+  echo -n "$VERSION"
+}
+
+lms_getver()
+{
+  if [[ ! -z $1 && ! -z $2 ]]; then
+  case "$1" in
+    'plg')
+      lms_plgver $2
+    ;;
+    'app')
+      lms_appver $2
+    ;;
+  esac
+  else
+    echo "usage $0 getver plg|app local|remote"
+  fi
+}
+
+
+# read our configuration
+source /boot/config/plugins/lms/lms.cfg
+
+case "$1" in
+  'start')
+    lms_start
+  ;;
+  'stop')
+    lms_stop
+  ;;
+  'restart')
+    lms_restart
+  ;;
+  'enable')
+    lms_enable $1 $2 $3 $4 $5
+  ;;
+  'disable')
+    lms_disable $1 $2 $3 $4 $5
+  ;;
+  'install')
+    lms_install
+  ;;
+  'buttonstart')
+    lms_buttonstart
+  ;;
+  'storagesize')
+    lms_storagesize $2
+  ;;
+  'datacheck')
+    lms_datacheck
+  ;;
+  'updateplg')
+    lms_updateplg
+  ;;
+  'updateapp')
+    lms_updateapp
+  ;;
+  'getver')
+    lms_getver $2 $3
+    ;;  
+    *)
+    echo "usage $0 start|stop|restart|enable|disable|install|buttonstart|storagesize|datacheck|updateplg|updateapp|getver"
+esac
+]]>
+</INLINE>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/lms/lms.png">
+<LOCAL>/boot/config/plugins/lms/lms.png</LOCAL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/lms/device_status.png">
+<LOCAL>/boot/config/plugins/images/device_status.png</LOCAL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/lms/new_config.png">
+<LOCAL>/boot/config/plugins/images/new_config.png</LOCAL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/lms/information.png">
+<LOCAL>/boot/config/plugins/images/information.png</LOCAL>
+</FILE>
+
+
+<FILE Name="/usr/local/emhttp/plugins/lms/lms.php">
+<INLINE>
+<![CDATA[
+<?PHP
+$lms_cfg = parse_ini_file("/boot/config/plugins/lms/lms.cfg");
+$lms_curinstdir = $lms_cfg['INSTALLDIR'];
+$lms_installed = is_dir( $lms_cfg['INSTALLDIR']) ? "yes" : "no";
+$lms_localplg = shell_exec("/etc/rc.d/rc.lms getver plg local");
+$lms_remoteplg = shell_exec("/etc/rc.d/rc.lms getver plg remote");
+$lms_localapp = shell_exec("/etc/rc.d/rc.lms getver app local");
+$lms_remoteapp = shell_exec("/etc/rc.d/rc.lms getver app remote");
+
+if ($lms_installed=="yes") {
+  $lms_running = file_exists("/var/run/lms/lms.pid") ? "yes" : "no";
+  $lms_datasize = shell_exec ( "/etc/rc.d/rc.lms storagesize $lms_cfg[INSTALLDIR]" );
+  $lms_datacheck = shell_exec ( "/etc/rc.d/rc.lms datacheck" );
+}
+$controls_exist = "false";
+$updates_exist = "false";
+?>
+
+<html>
+<head></head>
+<body>
+
+<div style="width: 49%; float:left; border: 0px solid black;">
+  <div id="title">
+    <span class="left">Status:&nbsp;<img src='/plugins/lms/device_status.png'>
+      <?if ($lms_installed=="yes"):?>
+        <?if ($lms_running=="yes"):?>
+            <span class="green"><a href="http://<?=$var['NAME'];?>:<?=$lms_cfg['PORT'];?>" style="color: green; text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'" target="_blank"><span class="green"><b>LMS is RUNNING on port <?=$lms_cfg['PORT'];?></b></span></a></span> 
+        <?else:?>
+          <span class="red"><b>NOT RUNNING</b></span>
+        <?endif;?>
+      <?else:?>
+        <span class="red"><b>NOT INSTALLED</b></span>
+      <?endif;?>
+    </span>
+  </div>
+  
+  <? if ($lms_installed=="yes"): ?>
+    <div style="border: 0px solid black;">
+      <span class="left">
+        <?=$lms_datasize?>
+        <?=$lms_datacheck?>  
+	  </span>
+    </div>  
+  <?endif;?>   
+       
+  <br>
+  
+  <div style="border: 0px solid black;">
+    <table>
+      <tr style="font-weight:bold; color:#333333; background:#F0F0F0; text-shadow:0 1px 1px #FFFFFF;">
+        <td>Package/Plugin</td>
+        <td>Local Version</td>		
+        <td>Online Version</td>
+      </tr>
+      <tr style="font-weight:bold; background:#FFFFFF;">
+        <td>LMS Application</td>
+        <td>
+          <?if ($lms_localapp != "Unknown"):?>
+            <span class="green-text"><?=$lms_localapp?></span>
+          <?else:?>
+            <span class="red-text">UNKNOWN</span>
+          <?endif;?>
+        </td>
+        <td>
+          <?if ($lms_remoteapp != "Unknown"):?>
+            <?if ($lms_cfg['BRANCH']=="stable"):?>
+              <span class="green-text"><a href="http://downloads.slimdevices.com" style="color: green; text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'" target="_blank"><span class="green-text"><?=$lms_remoteapp?></span></a></span>
+            <?else:?>
+              <span class="green-text"><a href="http://downloads.slimdevices.com/nightly/?ver=7.8" style="color: green; text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'" target="_blank"><span class="green-text"><?=$lms_remoteapp?></span></a></span>
+            <?endif;?>                   
+          <?else:?>
+            <span class="red-text">UNKNOWN</span>
+          <?endif;?>
+        </td>
+      </tr>
+      <tr style="font-weight:bold; background:#FFFFFF;">
+        <td>LMS Plugin</td>
+        <td>
+          <?if ($lms_localplg != "Unknown"):?>
+              <span class="green-text"><?=$lms_localplg?></span>
+          <?else:?>
+            <span class="red-text">UNKNOWN</span>
+          <?endif;?>
+        </td>
+        <td>
+          <?if ($lms_remoteplg != "Unknown"):?>
+              <span class="green-text"><?=$lms_remoteplg?></span>
+          <?else:?>
+            <span class="red-text">UNKNOWN</span>
+          <?endif;?>
+        </td>
+      </tr>      
+    </table>
+  </div>  
+
+  <br></br>
+
+  <div>
+    <table>
+      <tr style="font-weight:bold; color:#333333; background:#F0F0F0; text-shadow:0 1px 1px #FFFFFF;">
+        <td colspan="2">Control</td>
+      </tr>    
+    <?if ($lms_installed=="yes"):?>
+      <?if ($lms_running=="yes"):?>
+        <tr>
+        <td width="30%">
+          <form name="lms_start_stop" method="POST" action="/update.htm" target="progressFrame">
+            <input type="hidden" name="cmd" value="/etc/rc.d/rc.lms stop">
+            <input type="submit" name="runCmd" value="Stop">
+          </form>      
+        </td>
+        <td>Stop LMS Daemon</td>
+        </tr>
+        <tr>
+        <td width="30%">
+          <form name="lms_restart" method="POST" action="/update.htm" target="progressFrame">
+            <input type="hidden" name="cmd" value="/etc/rc.d/rc.lms restart">
+            <input type="submit" name="runCmd" value="Restart">
+          </form>  
+        </td>
+        <td>Restart LMS Daemon</td>
+        </tr>
+        <?$controls_exist = "true"?>
+      <?else:?>
+        <tr>
+        <td width="30%">
+          <form name="lms_start" method="POST" action="/update.htm" target="progressFrame">
+            <input type="hidden" name="cmd" value="/etc/rc.d/rc.lms buttonstart">
+            <input type="submit" name="runCmd" value="Start">
+          </form>
+        </td>
+        <td>Start LMS Daemon</td>
+        </tr>
+        <?$controls_exist = "true"?>
+      <?endif;?>
+    <?else:?>
+        <tr>
+      <td width="30%">
+        <form name="lms_install" method="POST" action="/update.htm" target="progressFrame">
+          <input type="hidden" name="cmd" value="/etc/rc.d/rc.lms install">
+          <input type="submit" name="runCmd" value="Install">
+        </form>
+      </td>
+      <td>Install LMS Application</td>
+      </tr>
+      <?$controls_exist = "true"?>      
+    <?endif;?>
+      
+    <?if ($controls_exist=="false"):?>
+      <tr>
+        <td colspan="2" align="center">No Control Actions available</td>
+      </tr>
+    <?endif;?>
+    </table>
+  </div>  
+  <br></br> 
+  <div style="border: 0px solid black;">
+    <table>
+      <tr style="font-weight:bold; color:#333333; background:#F0F0F0; text-shadow:0 1px 1px #FFFFFF;">
+        <td colspan="2">Updates</td>
+      </tr>
+      <?if (($lms_remoteplg != $lms_localplg) && ($lms_localplg != "Unknown") && ($lms_remoteplg != "Unknown")): ?>
+        <tr>
+        <td width="30%">
+          <form name="lms_updateplg" method="POST" action="/update.htm" target="progressFrame">
+            <input type="hidden" name="cmd" value="/etc/rc.d/rc.lms updateplg">
+            <input type="submit" name="runCmd" value="Update Plugin">
+          </form>
+        </td>
+          <td><span class="red-text">An update is available to the plugin</span></td>
+        </tr>
+        <?$updates_exist="true"?>
+      <?endif;?>
+
+      <?if (($lms_remoteapp != $lms_localapp) && ($lms_localapp != "Unknown") && ($lms_remoteapp != "Unknown")): ?>
+        <tr>
+          <td width="30%">
+          <form name="lms_updateapp" method="POST" action="/update.htm" target="progressFrame">
+            <input type="hidden" name="cmd" value="/etc/rc.d/rc.lms updateapp">
+            <input type="submit" name="runCmd" value="Update LMS">
+          </form>
+          </td>
+          <td><span class="red-text">An update is available to LMS</span></td>
+        </tr>
+        <?$updates_exist="true"?>
+      <?endif;?>
+
+      <?if ($updates_exist=="false"):?>
+        <tr>
+          <td colspan="2" align="center">No updates available at this time</td>
+        </tr>
+      <?endif;?>
+    </table>
+  </div>
+  <br></br>
+  <br></br>
+</div>
+
+<div style="width: 49%; float:right; border: 0px solid black;">
+  <div id="title">
+    <span class="left">Configuration:&nbsp;<img src='/plugins/lms/new_config.png'></span>
+  </div>
+  <form name="lms_settings" method="POST" action="/update.htm" target="progressFrame" onsubmit="validateForm();">
+    <input type="hidden" name="cmd" value="/etc/rc.d/rc.lms">
+    <input type="hidden" name="arg5" value="<?=$lms_curinstdir;?>">
+    <table class="settings">
+      <tr>
+        <td>Enable LMS Service:</td>
+        <td>
+          <select name="arg1" id="arg1" size="1">
+            <?=mk_option($lms_cfg['SERVICE'], "disable", "No");?>
+            <?=mk_option($lms_cfg['SERVICE'], "enable", "Yes");?>
+          </select>
+        </td>
+      </tr>
+      <tr>
+        <td>LMS Web Port:</td>
+        <td><input type="text" name="arg2" id="arg2" maxlength="60" value="<?=$lms_cfg['PORT'];?>"></td>
+      </tr>
+      <tr>
+        <td>LMS Installation Directory:</td>
+        <td><input type="text" name="arg3" id="arg3" maxlength="60" value="<?=$lms_cfg['INSTALLDIR'];?>"></td>
+      </tr>
+      <tr>
+      <td>LMS Branch:</td>
+      <td>
+        <select name="arg4" size="1">
+          <?=mk_option($lms_cfg['BRANCH'], "stable", "Stable");?>
+          <?=mk_option($lms_cfg['BRANCH'], "nightly", "Nightly");?>    
+        </select>
+        <img src="/plugins/lms/information.png" title="Installing from other than stable versions is not recommended. Use this option at your own risk!"/>
+      </td>
+      </tr>
+    </table>
+    <div align="center">
+      <hr size="3" align="center" width="75%" color="grey" style="margin-top:20px;margin-bottom:18px">  
+      <input type="submit" name="runCmd" value="Apply"><button type="button" onClick="done();">Done</button>
+    </div>
+    
+  </form>
+  <br />
+</div>
+
+<script type="text/javascript">
+function validateForm() {
+  document.getElementById('arg2').disabled = false;
+  document.getElementById('arg3').disabled = false;
+  document.getElementById('arg4').disabled = false;
+}
+
+function checkRUNNING(form) {
+  if ("<?=$lms_running;?>" == "yes") {
+    form.arg2.disabled = true;
+    form.arg3.disabled = true;
+    form.arg4.disabled = true;
+  }
+}
+
+checkRUNNING(document.lms_settings);
+</script>
+
+</body>
+</html>
+]]>
+</INLINE>
+</FILE>
+
+<!-- event handler -->
+<FILE Name="/usr/local/emhttp/plugins/lms/event/disks_mounted" Mode="0770">
+<INLINE>
+#!/bin/bash
+#load plugin config
+source /boot/config/plugins/lms/lms.cfg
+
+#Start lms if enabled
+[ $SERVICE = "enable" ] &amp;&amp; /etc/rc.d/rc.lms start
+</INLINE>
+</FILE>
+
+<!-- event handler -->
+<FILE Name="/usr/local/emhttp/plugins/lms/event/unmounting_disks" Mode="0770">
+<INLINE>
+#!/bin/bash
+/etc/rc.d/rc.lms stop
+</INLINE>
+</FILE>
+
+<FILE Name="/tmp/plugin-install" Run="/bin/bash">
+<INLINE>
+
+# create lms-writable directory for pid file
+echo "Creating writable PID dir..."
+[ ! -e /var/run/lms ] &amp;&amp; mkdir -m 0777 /var/run/lms
+
+rm /tmp/plugin-install
+</INLINE>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/lms/lms.page">
+<INLINE>
+Menu="NetworkServices"
+Icon="lms.png"
+Version=&plgver;
+Author=&author;
+Type="php"
+Title=&plugin;
+</INLINE>
+</FILE>
+
+<FILE Name="/var/log/plugins/lms">
+<INLINE>
+&plugin; v&plgver;
+</INLINE>
+</FILE>
+
+<FILE Name="/tmp/plugin-development" Run="/bin/bash">
+<INLINE>
+if [ "&dev;" == "true" ]; then
+  if [ -f /boot/config/plugins/lms.php ]; then
+    rm -f &gui;/lms/lms.php
+    ln -s /boot/config/plugins/lms.php &gui;/lms/lms.php
+  else
+    mv &gui;/lms/lms.php /boot/config/plugins/lms.php
+    ln -s /boot/config/plugins/lms.php &gui;/lms/lms.php
+  fi
+  if [ -f /boot/config/plugins/rc.lms ]; then
+    rm -f /etc/rc.d/rc.lms
+    ln -s /boot/config/plugins/rc.lms /etc/rc.d/rc.lms
+  else
+    mv /etc/rc.d/rc.lms /boot/config/plugins/rc.lms
+    ln -s /boot/config/plugins/rc.lms /etc/rc.d/rc.lms
+  fi
+fi
+
+rm /tmp/plugin-development
+</INLINE>
+</FILE>
+
+</PLUGIN>
