@@ -488,7 +488,11 @@ lms_appver()
   case "$1" in
     'local')
       REVISION=$(cat $INSTALLDIR/revision.txt | awk NR==1)
-      VERSION="v$(grep -F 'our $VERSION' $INSTALLDIR/slimserver.pl | cut -d\' -f2) revision $REVISION"
+      if [ "$BRANCH" = "stable" ]; then # only show version
+        VERSION="$(grep -F 'our $VERSION' $INSTALLDIR/slimserver.pl | cut -d\' -f2)"
+      else  # show version and revision
+        VERSION="$(grep -F 'our $VERSION' $INSTALLDIR/slimserver.pl | cut -d\' -f2) revision $REVISION"
+      fi
 	  if [ "$VERSION" == "" ]; then
         VERSION=Unknown
 	  fi	
@@ -501,7 +505,7 @@ lms_appver()
       if [ "$BRANCH" = "nightly" ]; then
           local FILENAME=$(wget -q http://downloads.slimdevices.com/nightly/?ver=7.8 -q -O - | grep -i LogitechMediaServer | sed -e 's/<[a-zA-Z\/][^>]*>//g' | grep logitechmediaserver-[0-9].[0-9].[0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9].tgz)
           local BUILDREV=$(echo $FILENAME | awk -F\- '{print $3}' | cut -f1 -d\.)
-          local VERSION="v$(echo $FILENAME | awk -F\- '{print $2}') revision $BUILDREV"
+          local VERSION="$(echo $FILENAME | awk -F\- '{print $2}') revision $BUILDREV"
       fi    
       if [ "$VERSION" == "" ]; then
         VERSION=Unknown
