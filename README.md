@@ -19,7 +19,9 @@ This is my collection of plugins for UnRAID;
 
 * **OpenSSH**: Provides encrypted communication sessions over a computer network using the SSH protocol.  SSH is typically used to log into a remote machine and execute commands, but it also supports tunneling, forwarding TCP ports and it can transfer files using the associated SSH file transfer (SFTP) or secure copy (SCP) protocols.
 
-* **SABnzbd**: UNSUPPORTED!  This is a fork of sabnzbd plugin as done by Influencer.  It is for personal use only and as such is not supported in any way.  If you choose to use it, please do NOT expect any support.  Posts on the UnRAID forum will be ignored.  In fact I'll ridicule you for ignoring this very obvious message. If you want to install SABnzbd plugin on UnRAID, you should install the actively maintained plugin by Influencer. Available at https://github.com/Influencer/UNplugged
+* **Logitech Media Server (LMS)**: Logitech Media Server (formerly Squeezebox Server, SlimServer and SqueezeCenter) is a streaming audio server supported by Logitech (formerly Slim Devices), developed in particular to support their Squeezebox range of digital audio receivers. Plugin originally developed by Tom (developer of UnRAID) and later enhanced and maintained by Alex R Berg.  My thanks to these and others who have contributed to the plugin as this version would not be possible without their help.
+
+* **SABnzbd**: UNSUPPORTED!  This is a fork of sabnzbd plugin as done by Influencer.  It is for personal use only and as such is not supported in any way.  If you choose to use it, please do NOT expect any support.  Posts on the UnRAID forum will be ignored.  If you want to install SABnzbd plugin on UnRAID, you should install the actively maintained plugin by Influencer. Available at https://github.com/Influencer/UNplugged
 
 
 ## Download Links
@@ -32,6 +34,7 @@ DenyHosts - (https://github.com/overbyrn/UnRAID/raw/master/denyhosts_overbyrn.pl
 Dropbox - (https://github.com/overbyrn/UnRAID/raw/master/dropbox_overbyrn.plg)<br>
 NZBGet - (https://github.com/overbyrn/UnRAID/raw/master/nzbget_overbyrn.plg)<br>
 OpenSSH - (https://github.com/overbyrn/UnRAID/raw/master/openssh_overbyrn.plg)<br>
+LMS - (https://github.com/overbyrn/UnRAID/raw/master/lms_overbyrn.plg)<br>
 
 ## Installation
 <p>
@@ -128,7 +131,7 @@ DenyHosts - (http://lime-technology.com/forum/index.php?topic=20848.msg184998#ms
 Dropbox - (http://lime-technology.com/forum/index.php?topic=23287.0)<br>
 NZBGet - (http://lime-technology.com/forum/index.php?topic=23423.0)<br>
 OpenSSH - (http://lime-technology.com/forum/index.php?topic=20848.0)<br>
-
+LMS - (http://lime-technology.com/forum/index.php?topic=18310.90)<br>
 
 Kind Regards,<br>
 overbyrn
