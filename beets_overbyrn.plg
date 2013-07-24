@@ -26,12 +26,13 @@ Plugin file locations:
  /tmp/plugin-cleanup                                                    # deletion script
  /tmp/plugin-install                                                    # installation script
 
- /packages/setuptools-0.6c11-i686-5sl.txz                               # primary package (mandatory)
- /packages/pip-1.3.tar.gz                                               # primary package (mandatory)
- /packages/python-2.6.6-i486-1.txz                                      # primary package (mandatory)
- /packages/sqlite-3.7.5-i486-1.txz                                      # primary package (mandatory)
- /packages/ffmpeg.static.32bit.2013-04-06.tar.gz                        # secondary package (required for beets convert)
- /packages/mp3gain-1.4.6-i486-3sl.txz                                   # secondary package (required for beets replygain)
+ /boot/packages/setuptools-0.6c11-i686-5sl.txz                          # primary package (mandatory)
+ /boot/packages/pip-1.3.tar.gz                                          # primary package (mandatory)
+ /boot/packages/python-2.6.6-i486-1.txz                                 # primary package (mandatory)
+ /boot/packages/sqlite-3.7.5-i486-1.txz                                 # primary package (mandatory)
+ 
+ /boot/config/plugins/beets/ffmpeg.static.32bit.2013-04-06.tar.gz       # secondary package (required for beets convert)
+ /boot/config/plugins/beets/mp3gain-1.4.6-i486-3sl.txz                  # secondary package (required for beets replygain)
 
  /boot/config/plugins/beets/beets.png                                   # icon file (copied to webgui plugin dir)
  /boot/config/plugins/images/device_status.png                          # icon file (copied to webgui plugin dir)

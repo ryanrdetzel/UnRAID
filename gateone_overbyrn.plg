@@ -1,0 +1,884 @@
+<?xml version='1.0' standalone='yes'?>
+
+<!DOCTYPE PLUGIN [
+<!ENTITY plugin "GateOne">
+<!ENTITY author "overbyrn">
+<!ENTITY plgver "1.3">
+<!ENTITY pkg "/boot/packages">
+<!ENTITY plg "/boot/config/plugins/gateone">
+<!ENTITY img "/boot/config/plugins/images">
+<!ENTITY gui "/usr/local/emhttp/plugins">
+<!ENTITY ram "/usr/local/gateone">
+<!ENTITY url1 "https://raw.github.com/overbyrn/UnRAID/master">
+<!ENTITY url2 "https://dl.dropbox.com/u/572553/UnRAID">
+<!ENTITY url3 "https://api.github.com/repos/liftoff/GateOne/tarball">
+<!ENTITY dev "true"><!-- set to "true" during plugin development -->
+]>
+
+<PLUGIN>
+<!--
+Copyright 2013, Rich Manton (overbyrn)
+
+This Plugin installs and provides GateOne Terminal in a Web Browser support for unRAID.
+
+Plugin file locations:
+ /boot/plugins/gateone_overbyrn.plg                                     # this file
+ /tmp/plugin-prepare                                                    # network readiness script
+ /tmp/plugin-cleanup                                                    # deletion script
+ /tmp/plugin-install                                                    # installation script
+
+ https://dl.dropboxusercontent.com/u/572553/unraid/packages.custom/dtach-0.8-i486-1rj.tgz
+ /boot/packages/python-2.6.6-i486-1.txz                                 # python 2.6 - primary dependency
+ /boot/packages/setuptools-0.6c11-i686-5sl.txz                          # setuptools 0.6c11 - primary dependency
+
+ /boot/config/plugins/gateone/dtach-0.8-i486-1rj.tgz                    # secondary package (required for terminal session resumption)
+ /boot/config/plugins/gateone/pip-1.3.tar.gz                            # secondary package (required for installing supporting apps via pip)
+ 
+ /boot/config/plugins/gateone/gateone.png                               # icon file (copied to webgui plugin dir)
+ /boot/config/plugins/images/device_status.png                          # icon file (copied to webgui plugin dir)
+ /boot/config/plugins/images/new_config.png                             # icon file (copied to webgui plugin dir)
+ /boot/config/plugins/images/information.png                            # icon file (copied to webgui plugin dir)
+ /boot/config/plugins/gateone/gateone.cfg                               # non-volatile configuration
+ /etc/rc.d/rc.gateone                                                   # plugin control script
+ /usr/local/emhttp/plugins/gateone/gateone.page                         # page file for webGui menu system
+ /usr/local/emhttp/plugins/gateone/gateone.php                          # webGui page code
+ /usr/local/emhttp/plugins/gateone/gateonesctl.php                      # webGui back-end control
+
+ /var/log/plugins/gateone                                               # created upon install success
+ /var/run/gateone/gateone.pid                                           # run-time pid file
+
+-->
+
+<FILE Name="/tmp/plugin-prepare" Run="/bin/bash">
+<INLINE>
+# Wait until network is ready
+timer=30
+while [ $timer -gt 0 ]; do
+  gateway=$(route -n | awk '/^0.0.0.0/ {print $2}')
+  if [ -n "$gateway" ] &amp;&amp; [ $(ping -q -n -c 1 $gateway | awk -F, '/received/ {print $2}' | awk '{print $1}') -eq 1 ]; then
+    break
+  fi
+  timer=$((timer-1))
+  sleep 1
+done
+if [ $timer -eq 0 ]; then
+  echo "No network communication !!!"
+fi
+# Remove this script
+rm -f /tmp/plugin-prepare
+</INLINE>
+</FILE>
+
+<FILE Name="&plg;/gateone.png">
+<URL>-q --no-check-certificate &url2;/plugin.images/gateone.png</URL>
+</FILE>
+
+<FILE Name="&img;/device_status.png">
+<URL>-q --no-check-certificate &url2;/plugin.images/device_status.png</URL>
+</FILE>
+
+<FILE Name="&img;/new_config.png">
+<URL>-q --no-check-certificate &url2;/plugin.images/new_config.png</URL>
+</FILE>
+
+<FILE Name="&img;/information.png">
+<URL>-q --no-check-certificate &url2;/plugin.images/information.png</URL>
+</FILE>
+
+<FILE Name="&pkg;/setuptools-0.6c11-i686-5sl.txz" Run="upgradepkg --install-new">
+<URL>-q --no-check-certificate &url2;/packages.generic/setuptools-0.6c11-i686-5sl.txz</URL>
+</FILE>
+
+<FILE Name="&pkg;/python-2.6.6-i486-1.txz" Run="upgradepkg --install-new">
+<URL>-q --no-check-certificate &url2;/packages.generic/python-2.6.6-i486-1.txz</URL>
+</FILE>
+
+<FILE Name="&plg;/dtach-0.8-i486-1rj.tgz">
+<URL>-q --no-check-certificate &url2;/packages.custom/dtach-0.8-i486-1rj.tgz</URL>
+</FILE>
+
+<FILE Name="&plg;/pip-1.3.tar.gz">
+<URL>-q --no-check-certificate &url2;/packages.custom/pip-1.3.tar.gz</URL>
+</FILE>
+
+<FILE Name="&plg;/master.tgz">
+<URL>-q --no-check-certificate &url3;</URL>
+</FILE>
+
+<FILE Name="/tmp/plugin-cleanup" Run="/bin/bash">
+<INLINE>
+# delete file but don't warn if file does not exist
+rmNoWarn() {
+  test -e $1 &amp;&amp; rm $1 2>/dev/null
+}
+
+# delete directory but don't warn if directory does not exist
+rmRecursiveNoWarn() {
+  test -e $1 &amp;&amp; rm -r $1 2>/dev/null
+}
+
+#Remove currently installed plugin files
+rmNoWarn /etc/rc.d/rc.gateone                            # control script
+rmNoWarn /var/run/gateone/gateone.pid                    # stale pid file
+rmRecursiveNoWarn /usr/local/emhttp/plugins/gateone      # unraid webgui integration files
+rmNoWarn /var/log/plugins/gateone                        # record of previous plugin installation
+
+rm /tmp/plugin-cleanup
+</INLINE>
+</FILE>
+
+<FILE Name="/boot/config/plugins/gateone/gateone.cfg">
+<INLINE>
+# ssh configuration
+SERVICE="disable"
+PORT="8888"
+</INLINE>
+</FILE>
+
+<FILE Name="/boot/config/plugins/gateone/10server.conf" Mode="0770">
+<INLINE>
+<![CDATA[
+// This is Gate One's main settings file.
+{
+    // "gateone" server-wide settings fall under "*"
+    "*": {
+        "gateone": { // These settings apply to all of Gate One
+            "address": "",
+            "ca_certs": null,
+            "cache_dir": "/tmp/gateone_cache",
+            "certificate": "certificate.pem",
+            "combine_css": "",
+            "combine_css_container": "#gateone",
+            "combine_js": "",
+            "cookie_secret": "NzUxOWJjZTRjNWQ2NGI2NDlkOGJjNjgxODRlZTEzODUxN",
+            "debug": false,
+            "disable_ssl": true,
+            "embedded": false,
+            "enable_unix_socket": false,
+            "gid": "0",
+            "https_redirect": false,
+            "js_init": "",
+            "keyfile": "keyfile.pem",
+            "locale": "en_US",
+            "log_file_max_size": 100000000,
+            "log_file_num_backups": 10,
+            "log_file_prefix": "/var/log/gateone.log",
+            "log_to_stderr": null,
+            "logging": "info",
+            "origins": ["localhost", "127.0.0.1", "Tower", "*"],
+            "pid_file": "/var/run/gateone.pid",
+            "port": 8888,
+            "session_dir": "/tmp/gateone",
+            "session_timeout": "5d",
+            "syslog_facility": "daemon",
+            "syslog_host": null,
+            "uid": "0",
+            "unix_socket_path": "/var/run/gateone.sock",
+            "url_prefix": "/",
+            "user_dir": "/usr/local/gateone/users",
+            "user_logs_max_age": "30d"
+        }
+    }
+}
+]]>
+</INLINE>
+</FILE>
+
+<FILE Name="/boot/config/plugins/gateone/20authentication.conf" Mode="0770">
+<INLINE>
+<![CDATA[
+// This is Gate One's authentication settings file.
+{
+    // "gateone" server-wide settings fall under "*"
+    "*": {
+        "gateone": { // These settings apply to all of Gate One
+            "api_timestamp_window": "30s",
+            "auth": "none",
+            "pam_realm": "Tower",
+            "pam_service": "login",
+            "ssl_auth": "none",
+            "sso_realm": null,
+            "sso_service": "HTTP"
+        }
+    }
+}
+]]>
+</INLINE>
+</FILE>
+
+<FILE Name="/etc/rc.d/rc.gateone" Mode="0770">
+<INLINE>
+<![CDATA[
+#!/bin/bash
+# start|stop|restart|enable|disable|buttonstart|updateplg|getver gateone.
+
+gateone_start()
+{
+  # no-op if not enabled
+  if [ $SERVICE != "enable" ]; then
+    #echo "Service is not enabled!"
+    #sleep 1
+    return
+  fi
+   
+  # no-op if already running
+  if [ -f /var/run/gateone.pid ]; then
+    #echo "Gate One already running"
+    #sleep 1
+    return
+  fi   
+   
+  CMDLINE="python /usr/local/gateone/gateone/gateone.py --settings_dir=/usr/local/gateone/settings --disable_ssl=true --origins=* --pid_file=/var/run/gateone.pid --port=$PORT > /dev/null 2>&1"
+  #echo "Starting Gate One: $CMDLINE"
+  #sleep 1
+  nohup $CMDLINE > /dev/null 2>&1 &
+  
+  #echo "... OK"
+  sleep 1
+}
+
+gateone_stop()
+{ 
+  # no-op if already running
+  if [ ! -f /var/run/gateone.pid ]; then
+    #echo "Gate One already stopped"
+    #sleep 1
+    return
+  fi   
+
+  #echo "Stopping Gate One..."
+  #sleep 1
+  
+  kill $(cat /var/run/gateone.pid) >/dev/null
+  #sleep 1
+
+  #Expect the unexpected
+  PID=$(ps -ef | grep gateone.py | grep -v grep | awk '{print $2}');
+  test "$PID" != "" && kill -9 $PID
+  [[ -f /var/run/gateone.pid ]] && rm -f /var/run/gateone.pid  
+  
+  #echo "... OK"
+  #sleep 1
+}
+  
+gateone_restart() {
+  gateone_stop
+  gateone_start
+}  
+
+gateone_buttonstart()
+{
+  CONFIG="/boot/config/plugins/gateone/gateone.cfg"
+  if [ -f $CONFIG ]; then
+    # a less greedy sed.  only replaces the first occurance of diabled with enabled.  ie. will only hit service line which is (usually) always first in cfg
+	sed -i "0,/"disable"/s/"disable"/"enable/"" $CONFIG 2>/dev/null
+    SERVICE=enable
+    
+    write_config
+    gateone_start
+    
+  fi
+}
+
+write_config()
+{
+  #echo "Updating Config..."
+  #sleep 1
+  
+  echo "# gateone configuration" > /boot/config/plugins/gateone/gateone.cfg
+  echo "SERVICE=\"$SERVICE\"" >> /boot/config/plugins/gateone/gateone.cfg
+  echo "PORT=\"$PORT\"" >> /boot/config/plugins/gateone/gateone.cfg
+
+  #echo "... OK"
+  #sleep 1
+}
+
+gateone_enable()
+{
+  #echo "Applying Settings ($1) ..."
+  #sleep 1
+  
+  SERVICE="$1" #enable
+  PORT="$2"
+ 
+  write_config
+  gateone_start
+   
+  #echo "... OK"
+  #sleep 1
+}
+
+gateone_disable()
+{
+  #echo "Applying Settings ($1) ..."
+  #sleep 1
+  
+  SERVICE="$1" #disable
+  PORT="$2"
+ 
+  write_config
+  gateone_stop
+  
+  #echo "... OK"
+  #sleep 1
+}
+
+gateone_updateplg()
+{
+  if [ -f /boot/config/plugins/gateone_overbyrn.plg ]; then
+    gateone_stop;
+    #echo "Downloading plugin..."
+    wget -q -P /tmp --no-check-certificate https://raw.github.com/overbyrn/UnRAID/master/gateone_overbyrn.plg 2>/dev/null
+    if [ ! -f /tmp/gateone_overbyrn.plg ]; then
+      echo "Download failed, update aborted!"
+      #sleep 2
+    else
+      #echo "...OK"
+      #sleep 1
+      #echo  "Upgrading plugin..."
+      #sleep 1
+      mv -f /boot/config/plugins/gateone_overbyrn.plg /boot/config/plugins/gateone/gateone_overbyrn.plg.sav 2>/dev/null
+      mv -f /tmp/gateone_overbyrn.plg /boot/config/plugins/gateone_overbyrn.plg 2>/dev/null
+      /usr/local/sbin/installplg /boot/config/plugins/gateone_overbyrn.plg 2>/dev/null
+      #echo "...OK"
+      #sleep 1
+    fi
+    gateone_start;
+  fi
+}
+
+gateone_plgver()
+{
+  case "$1" in
+    'local')
+      if [ -f /boot/config/plugins/gateone_overbyrn.plg ]; then
+        VERSION=$(grep "<\!ENTITY plgver" /boot/config/plugins/gateone_overbyrn.plg | cut -d\" -f2)
+	  else
+	    VERSION=Unknown
+	  fi
+    ;;
+    'remote')
+      VERSION=$(wget --no-check-certificate -q https://raw.github.com/overbyrn/UnRAID/master/gateone_overbyrn.plg -O - | grep "<\!ENTITY plgver" | cut -d\" -f2)
+      if [ "$VERSION" == "" ]; then
+        VERSION=Unknown
+      fi
+    ;;
+  esac
+  # nb: remember to use -n to remove CRLF as otherwise php var needs TRIM on the shell_exec line
+  echo -n "$VERSION"
+}
+
+gateone_appver()
+{
+  case "$1" in
+    'local')
+      #VERSION=$(/usr/bin/ssh -V 2>&1)
+    ;;
+    'remote')
+      #APPVER=$(wget --no-check-certificate https://dl.dropbox.com/u/572553/UnRAID/plugin.version.control/gateone_appver.txt -q -O - |sed 's/_/-/g')
+      #VERSION=$(echo $APPVER|awk -F- '{print $3"-"$2"-"$4}') 
+      #currently not in used for this plugin.
+      VERSION=$(/usr/bin/ssh -V)
+      if [ "$VERSION" == "" ]; then
+        VERSION=Unknown
+      fi
+    ;;
+  esac
+  echo -n "$VERSION"
+}
+
+gateone_getver()
+{
+  if [[ ! -z $1 && ! -z $2 ]]; then
+  case "$1" in
+    'plg')
+      gateone_plgver $2
+    ;;
+    'app')
+      gateone_appver $2
+    ;;
+  esac
+  else
+    echo "usage $0 getver plg|app local|remote"
+  fi
+}
+
+# read our configuration
+source /boot/config/plugins/gateone/gateone.cfg
+
+case "$1" in
+  'start')
+    gateone_start
+  ;;
+  'stop')
+    gateone_stop
+  ;;
+  'restart')
+    gateone_restart
+  ;;
+  'enable')
+    gateone_enable $1 $2
+  ;;
+  'disable')
+    gateone_disable $1 $2
+  ;;
+  'buttonstart')
+    gateone_buttonstart
+  ;;
+  'updateplg')
+    gateone_updateplg
+  ;;
+  'getver')
+    gateone_getver $2 $3
+    ;;  
+    *)
+    echo "usage $0 start|stop|restart|enable|disable|buttonstart|updateplg|getver"
+esac
+]]>
+</INLINE>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/gateone/gateone.png">
+<LOCAL>/boot/config/plugins/gateone/gateone.png</LOCAL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/gateone/device_status.png">
+<LOCAL>/boot/config/plugins/images/device_status.png</LOCAL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/gateone/new_config.png">
+<LOCAL>/boot/config/plugins/images/new_config.png</LOCAL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/gateone/information.png">
+<LOCAL>/boot/config/plugins/images/information.png</LOCAL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/gateone/gateone.php">
+<INLINE>
+<![CDATA[
+<?PHP
+$gateone_cfg = parse_ini_file( "/boot/config/plugins/gateone/gateone.cfg");
+$gateone_localplg = shell_exec("/etc/rc.d/rc.gateone getver plg local");
+$gateone_remoteplg = shell_exec("/etc/rc.d/rc.gateone getver plg remote");
+$gateone_localapp = shell_exec("/etc/rc.d/rc.gateone getver app local");
+$gateone_running = file_exists( "/var/run/gateone.pid") ? "yes" : "no";
+$controls_exist = "false";
+$updates_exist = "false";
+?>
+
+<html>
+<head></head>
+<body>
+
+<div style="width: 49%; float:left; border: 0px solid black;">
+  <div id="title">
+    <span class="left">Status:&nbsp;<img src='/plugins/gateone/device_status.png'>
+      <?if ($gateone_running=="yes"):?>
+        <span class="green"><b>Gate One is RUNNING</b></span>
+      <?else:?>
+        <span class="red"><b>Gate One is NOT RUNNING</b></span>
+      <?endif;?>
+    </span>
+  </div>
+  
+  <div style="border: 0px solid black;">
+    <span class="left">
+      <p>
+        <!-- Gate One Version: <span class="green-text"><b><?=$gateone_localapp?></b></span> -->
+      </p>
+	</span>
+  </div>
+
+  <br></br>
+  
+  <div style="border: 0px solid black;">
+    <table>
+      <tr style="font-weight:bold; color:#333333; background:#F0F0F0; text-shadow:0 1px 1px #FFFFFF;">
+        <td>Plugin</td>
+        <td>Local Version</td>
+        <td>Online Version</td>
+      </tr>
+      <tr style="font-weight:bold; background:#FFFFFF;">
+        <td>Gate One Plugin</td>
+        <td>
+          <?if ($gateone_localplg != "Unknown"):?>
+              <span class="green-text"><?=$gateone_localplg?></span>
+          <?else:?>
+            <span class="red-text">UNKNOWN</span>
+          <?endif;?>
+        </td>
+        <td>
+          <?if ($gateone_remoteplg != "Unknown"):?>
+              <span class="green-text"><?=$gateone_remoteplg?></span>
+          <?else:?>
+            <span class="red-text">UNKNOWN</span>
+          <?endif;?>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <br></br>
+
+  <div>
+    <table>
+      <tr style="font-weight:bold; color:#333333; background:#F0F0F0; text-shadow:0 1px 1px #FFFFFF;">
+        <td colspan="2">Control Actions</td>
+      </tr>
+
+      <?if ($gateone_running=="yes"):?>
+        <tr>
+        <td width="30%">
+          <form name="gateone_start_stop" method="POST" action="/plugins/gateone/gateonectl.php" target="progressFrame" onsubmit="return validateForm();">
+            <input type="hidden" name="cmd" value="stop">
+            <input type="submit" name="runCmd" value="Stop">
+          </form>
+        </td>
+        <td>Stop Gate One Daemon</td>
+        </tr>
+        <tr>
+        <td width="30%">
+          <form name="gateone_restart" method="POST" action="/plugins/gateone/gateonectl.php" target="progressFrame" onsubmit="return validateForm();">
+            <input type="hidden" name="cmd" value="restart">
+            <input type="submit" name="runCmd" value="Restart">
+          </form>
+        </td>
+        <td>Restart Gate One Daemon</td>
+        </tr>
+        <?$controls_exist = "true"?>
+      <?else:?>
+        <tr>
+        <td width="30%">
+          <form name="gateone_start" method="POST" action="/plugins/gateone/gateonectl.php" target="progressFrame" onsubmit="return validateForm();">
+            <input type="hidden" name="cmd" value="buttonstart">
+            <input type="submit" name="runCmd" value="Start">
+          </form>
+        </td>
+        <td>Start Gate One Daemon</td>
+        </tr>
+        <?$controls_exist = "true"?>
+      <?endif;?>
+      <?if ($controls_exist=="false"):?>
+        <tr>
+          <td colspan="2" align="center">No Control Actions available</td>
+        </tr>
+      <?endif;?>
+    </table>
+  </div>
+  <br></br>
+  <div style="border: 0px solid black;">
+    <table>
+      <tr style="font-weight:bold; color:#333333; background:#F0F0F0; text-shadow:0 1px 1px #FFFFFF;">
+        <td colspan="2">Updates</td>
+      </tr>
+      <?if (($gateone_remoteplg != $gateone_localplg) && ($gateone_localplg != "Unknown") && ($gateone_remoteplg != "Unknown")): ?>
+        <tr>
+        <td width="30%">
+          <form name="gateone_updateplg" method="POST" action="/plugins/gateone/gateonectl.php" target="progressFrame">
+            <input type="hidden" name="cmd" value="updateplg">
+            <input type="submit" name="runCmd" value="Update Plugin">
+          </form>
+        </td>
+        <td><span class="red-text">An update is available to the plugin</span></td>
+        </tr>
+        <?$updates_exist="true"?>
+      <?endif;?>
+
+      <?if ($updates_exist=="false"):?>
+        <tr>
+          <td colspan="2" align="center">No updates available at this time</td>
+        </tr>
+      <?endif;?>
+    </table>
+  </div>
+  <br></br>
+  <br></br>
+</div>
+
+<div style="width: 49%; float:right; border: 0px solid black;">
+  <div id="title">
+    <span class="left">Configuration:&nbsp;<img src='/plugins/gateone/new_config.png'></span>
+  </div>
+  <form name="gateone_settings" id="gateone_settings" method="POST" action="/plugins/gateone/gateonectl.php" target="progressFrame" onsubmit="return validateForm();">
+  <!--note to self: the /return/ in the onsubmit event is important as without it, the submit action is still processed-->
+    <input type="hidden" name="cmd" value="apply">
+	
+    <table class="settings">
+      <tr>
+      <td>Enable Gate One Service:</td>
+      <td>
+        <select name="SERVICE" size="1">
+          <?=mk_option($gateone_cfg['SERVICE'], "disable", "No");?>
+          <?=mk_option($gateone_cfg['SERVICE'], "enable", "Yes");?>
+        </select>
+      </td>
+      </tr>
+      <tr>
+      <td>Gate One Port:</td>
+      <td>
+        <input type="text" name="PORT" maxlength="5" style="width: 20%;height: 100%;" value="<?=$gateone_cfg['PORT'];?>">
+      </td>
+      </tr>
+    </table>
+
+    <div align="center">
+      <hr size="3" align="center" width="75%" color="grey" style="margin-top:20px;margin-bottom:18px">
+      <input type="submit" name="runCmd" value="Apply"><button type="button" onClick="done();">Done</button>
+    </div>
+  </form>
+  <br></br>
+  <br></br>
+</div>
+
+<script type="text/javascript">
+function checkRUNNING(form)
+{
+   if ("<?=$gateone_running;?>" == "yes") {
+    form.PORT.disabled = true;
+   }
+}
+
+function validateForm()
+{
+  document.forms["gateone_settings"]["PORT"].disabled = false;
+}
+</script>
+</body>
+</html>
+
+</body>
+</html>
+]]>
+</INLINE>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/gateone/gateonectl.php">
+<INLINE>
+<![CDATA[
+<?PHP
+  $logfile = "/var/log/plugins/gateone";
+  $configfile = "/boot/config/plugins/gateone/gateone.cfg";
+
+  if (empty($_SERVER['SHELL']))
+    $newline = "<br>";
+  else
+    $newline = "\n";
+
+  $cur_dt = date("F j\, Y h:i:s A");
+  write_log("\nStart: $cur_dt");
+ 
+  $settings = array("SERVICE","PORT");
+
+  parse_str($argv[1],$_POST);
+
+  $SERVICE=$_POST['SERVICE'];
+  $PORT=$_POST['PORT'];
+  
+  write_log("SERVICE: $SERVICE\nPORT: $PORT\n");
+
+  switch ($_POST['cmd']) {
+    case 'apply':
+      if ($SERVICE == "enable") {
+        enablegateone();
+      }
+      else
+        disablegateone();
+      break;
+    case 'buttonstart':
+      buttonstartgateone();
+      break;
+    case 'restart':
+      restartgateone();
+      break;
+    case 'stop':
+      stopgateone();
+      break;
+    case 'install':
+      installgateone();
+      break;
+    case 'updateplg':
+      updateplg();
+      break;
+    default:
+    break;
+  }
+
+  if (empty($_SERVER['SHELL'])) {
+    echo("<html>");
+    echo("<head><script>var goback=parent.location;</script></head>");
+    echo("<body onLoad=\"parent.location=goback;\"></body>");
+    echo("</html>");
+  }
+  
+  $cur_dt = date("F j\, Y h:i:s A");
+  write_log("\nEnd: $cur_dt");
+  
+  function startgateone() {
+    global $newline, $log;
+    exec_log("/etc/rc.d/rc.gateone start");
+  }
+
+  function buttonstartgateone() {
+    global $newline, $log;
+    exec_log("/etc/rc.d/rc.gateone buttonstart");
+  }
+
+  function restartgateone() {
+    global $newline, $log;
+    exec_log("/etc/rc.d/rc.gateone restart");
+  }
+  
+  function stopgateone() {
+    global $newline, $log;
+    exec_log("/etc/rc.d/rc.gateone stop");
+  }
+
+  function installgateone() {
+    global $newline, $log;
+    exec_log("/etc/rc.d/rc.gateone install");
+  }
+
+  function updateplg() {
+    global $newline, $log;
+    exec_log("/etc/rc.d/rc.gateone updateplg");
+  }
+  
+  function enablegateone() {
+    global $newline, $log, $SERVICE, $PORT;
+    exec_log("/etc/rc.d/rc.gateone $SERVICE $PORT"); 
+  }
+
+  function disablegateone() {
+    global $newline, $log, $SERVICE, $PORT;
+    exec_log("/etc/rc.d/rc.gateone $SERVICE $PORT"); 
+  }
+  
+  function exec_log($cmd) {
+    $results = exec($cmd);    
+    $results = "\nCMD: $cmd \nResults: $results";
+    write_log($results);
+  }
+
+  function write_log($contents) {
+    global $logfile;
+    write_string($logfile, "$contents\n", FALSE);
+  }
+    
+  function write_string ($file, $contents, $overwrite) {
+    if (file_exists($file)) {
+      if ($overwrite)
+          unlink($file);
+          touch($file);
+    }
+    else {
+      touch($file);
+    }
+    
+    $fp = @fopen($file, 'a');
+    @flock($fp, LOCK_EX);
+    @fwrite($fp, $contents);
+    @flock($fp, LOCK_UN);
+    @fclose($fp);
+  }
+?>
+]]>
+</INLINE>
+</FILE>
+
+<FILE Name="/tmp/plugin-install" Run="/bin/bash">
+<INLINE>
+
+# install gateone + supporting files
+cd /tmp
+
+# install gateone from github master (downloaded earlier in plugin)
+tar zxvf &plg;/master.tgz -C /usr/local -o
+mv /usr/local/liftoff-GateOne-* /usr/local/gateone
+
+#cd liftoff-GateOne-*
+#python setup.py install --prefix=/usr/local
+#cd ..
+#rm -rf liftoff-GateOne-*
+
+# install pip
+tar zxvf &plg;/pip-1.3.tar.gz -C /tmp -o
+cd pip-1.3
+python setup.py install
+cd ..
+rm -rf pip-1.3.tar.gz
+
+# install gateone prerequsities
+pip install tornado
+pip install ordereddict
+pip install slimit
+pip install cssmin
+
+# precompile python files
+python -m compileall &ram;/gateone;
+
+cp &plg;/10server.conf &ram;/gateone/settings/10server.conf
+cp &plg;/20authentication.conf &ram;/gateone/settings/20authentication.conf
+
+# set permissions / ownership
+chmod -R 777 /usr/local/gateone
+chown -R nobody:users /usr/local/gateone
+
+# install dtach binary
+tar -zxvf &plg;/dtach-0.8-i486-1rj.tgz -C /usr/local/bin -o
+
+# cleanup tmp
+rm -rf pip-1.3.tar.gz pip-1.3 pip-build-root
+
+rm /tmp/plugin-install
+</INLINE>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/gateone/gateone.page">
+<INLINE>
+Menu="NetworkServices"
+Icon="gateone.png"
+Version=&plgver;
+Author=&author;
+Type="php"
+Title=&plugin;
+</INLINE>
+</FILE>
+
+<FILE Name="/var/log/plugins/gateone">
+<INLINE>
+&plugin; v&plgver;
+</INLINE>
+</FILE>
+
+<FILE Name="/tmp/plugin-development" Run="/bin/bash">
+<INLINE>
+if [ "&dev;" == "true" ]; then
+  if [ -f /boot/config/plugins/gateone.php ]; then
+    rm -f &gui;/gateone/gateone.php
+    ln -s /boot/config/plugins/gateone.php &gui;/gateone/gateone.php
+  else
+    mv &gui;/gateone/gateone.php /boot/config/plugins/gateone.php
+    ln -s /boot/config/plugins/gateone.php &gui;/gateone/gateone.php
+  fi
+  if [ -f /boot/config/plugins/gateonectl.php ]; then
+    rm -f &gui;/gateone/gateonectl.php
+    ln -s /boot/config/plugins/gateonectl.php &gui;/gateone/gateonectl.php
+  else
+    mv &gui;/gateone/gateonectl.php /boot/config/plugins/gateonectl.php
+    ln -s /boot/config/plugins/gateonectl.php &gui;/gateone/gateonectl.php
+  fi
+  if [ -f /boot/config/plugins/rc.gateone ]; then
+    rm -f /etc/rc.d/rc.gateone
+    ln -s /boot/config/plugins/rc.gateone /etc/rc.d/rc.gateone
+  else
+    mv /etc/rc.d/rc.gateone /boot/config/plugins/rc.gateone
+    ln -s /boot/config/plugins/rc.gateone /etc/rc.d/rc.gateone
+  fi
+fi
+
+rm /tmp/plugin-development
+</INLINE>
+</FILE>
+
+</PLUGIN>

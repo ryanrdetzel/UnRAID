@@ -38,6 +38,7 @@ Plugin file locations:
  /etc/rc.d/rc.denyhosts                                                 # plugin control script
  /usr/local/emhttp/plugins/denyhosts/denyhosts.page                     # page file for webGui menu system
  /usr/local/emhttp/plugins/denyhosts/denyhosts.php                      # webGui page code
+ /usr/local/emhttp/plugins/denyhosts/denyhostsctl.php                   # webGui back-end control 
 
  /var/log/plugins/denyhosts                                             # created upon install success
  /var/run/denyhosts/denyhosts.pid                                       # run-time pid file

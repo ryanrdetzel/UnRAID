@@ -48,6 +48,8 @@ Plugin file locations:
  /etc/rc.d/rc.airvideo                                                          # plugin control script
  /usr/local/emhttp/plugins/airvideo/airvideo.page                               # page file for webGui menu system
  /usr/local/emhttp/plugins/airvideo/airvideo.php                                # webGui page code
+ /usr/local/emhttp/plugins/airvideo/airvideoctl.php                             # webGui back-end control 
+ 
  /usr/local/emhttp/plugins/airvideo/event/disks_mounted                         # script to execute for emhttp event
  /usr/local/emhttp/plugins/airvideo/event/unmounting_disks                      # script to execute for emhttp event
  /var/log/plugins/airvideo                                                      # created upon install success
