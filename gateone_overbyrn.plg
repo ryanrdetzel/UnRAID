@@ -3,7 +3,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY plugin "GateOne">
 <!ENTITY author "overbyrn">
-<!ENTITY plgver "1.3">
+<!ENTITY plgver "1.0">
 <!ENTITY pkg "/boot/packages">
 <!ENTITY plg "/boot/config/plugins/gateone">
 <!ENTITY img "/boot/config/plugins/images">
@@ -12,14 +12,14 @@
 <!ENTITY url1 "https://raw.github.com/overbyrn/UnRAID/master">
 <!ENTITY url2 "https://dl.dropbox.com/u/572553/UnRAID">
 <!ENTITY url3 "https://api.github.com/repos/liftoff/GateOne/tarball">
-<!ENTITY dev "true"><!-- set to "true" during plugin development -->
+<!ENTITY dev "false"><!-- set to "true" during plugin development -->
 ]>
 
 <PLUGIN>
 <!--
 Copyright 2013, Rich Manton (overbyrn)
 
-This Plugin installs and provides GateOne Terminal in a Web Browser support for unRAID.
+This Plugin installs and provides GateOne Web-based Terminal Emulator support for unRAID.
 
 Plugin file locations:
  /boot/plugins/gateone_overbyrn.plg                                     # this file
@@ -27,7 +27,6 @@ Plugin file locations:
  /tmp/plugin-cleanup                                                    # deletion script
  /tmp/plugin-install                                                    # installation script
 
- https://dl.dropboxusercontent.com/u/572553/unraid/packages.custom/dtach-0.8-i486-1rj.tgz
  /boot/packages/python-2.6.6-i486-1.txz                                 # python 2.6 - primary dependency
  /boot/packages/setuptools-0.6c11-i686-5sl.txz                          # setuptools 0.6c11 - primary dependency
 
@@ -155,7 +154,7 @@ PORT="8888"
             "disable_ssl": true,
             "embedded": false,
             "enable_unix_socket": false,
-            "gid": "0",
+            "gid": "100",
             "https_redirect": false,
             "js_init": "",
             "keyfile": "keyfile.pem",
@@ -172,7 +171,7 @@ PORT="8888"
             "session_timeout": "5d",
             "syslog_facility": "daemon",
             "syslog_host": null,
-            "uid": "0",
+            "uid": "99",
             "unix_socket_path": "/var/run/gateone.sock",
             "url_prefix": "/",
             "user_dir": "/usr/local/gateone/users",
