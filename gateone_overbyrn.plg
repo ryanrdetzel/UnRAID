@@ -27,9 +27,10 @@ Plugin file locations:
  /tmp/plugin-cleanup                                                    # deletion script
  /tmp/plugin-install                                                    # installation script
 
- /boot/packages/python-2.6.6-i486-1.txz                                 # python 2.6 - primary dependency
- /boot/packages/setuptools-0.6c11-i686-5sl.txz                          # setuptools 0.6c11 - primary dependency
+ /boot/packages/python-2.7.3-i486-2.txz                                 # python 2.7 - primary dependency
 
+ /boot/config/plugins/beets/setuptools-0.9.8-py2.7.egg                  # primary python package (req. for pip install)
+ /boot/config/plugins/beets/pip-1.4.tar.gz                              # primary python package (req. for python package downloads/installs)
  /boot/config/plugins/gateone/dtach-0.8-i486-1rj.tgz                    # secondary package (required for terminal session resumption)
  /boot/config/plugins/gateone/pip-1.3.tar.gz                            # secondary package (required for installing supporting apps via pip)
  
@@ -84,20 +85,20 @@ rm -f /tmp/plugin-prepare
 <URL>-q --no-check-certificate &url2;/plugin.images/information.png</URL>
 </FILE>
 
-<FILE Name="&pkg;/setuptools-0.6c11-i686-5sl.txz" Run="upgradepkg --install-new">
-<URL>-q --no-check-certificate &url2;/packages.generic/setuptools-0.6c11-i686-5sl.txz</URL>
-</FILE>
-
-<FILE Name="&pkg;/python-2.6.6-i486-1.txz" Run="upgradepkg --install-new">
-<URL>-q --no-check-certificate &url2;/packages.generic/python-2.6.6-i486-1.txz</URL>
+<FILE Name="&pkg;/python-2.7.3-i486-2.txz" Run="upgradepkg --install-new">
+<URL>-q --no-check-certificate &url2;/packages.generic/python-2.7.3-i486-2.txz</URL>
 </FILE>
 
 <FILE Name="&plg;/dtach-0.8-i486-1rj.tgz">
 <URL>-q --no-check-certificate &url2;/packages.custom/dtach-0.8-i486-1rj.tgz</URL>
 </FILE>
 
-<FILE Name="&plg;/pip-1.3.tar.gz">
-<URL>-q --no-check-certificate &url2;/packages.custom/pip-1.3.tar.gz</URL>
+<FILE Name="&plg;/setuptools-0.9.8-py2.7.egg">
+<URL>-q --no-check-certificate &url2;/packages.custom/setuptools-0.9.8-py2.7.egg</URL>
+</FILE>
+
+<FILE Name="&plg;/pip-1.4.tar.gz">
+<URL>-q --no-check-certificate &url2;/packages.custom/pip-1.4.tar.gz</URL>
 </FILE>
 
 <FILE Name="&plg;/master.tgz">
@@ -795,17 +796,13 @@ cd /tmp
 tar zxvf &plg;/master.tgz -C /usr/local -o
 mv /usr/local/liftoff-GateOne-* /usr/local/gateone
 
-#cd liftoff-GateOne-*
-#python setup.py install --prefix=/usr/local
-#cd ..
-#rm -rf liftoff-GateOne-*
+# install setuptools (needed for pip to install)
+&plg;/setuptools-0.9.8-py2.7.egg
 
 # install pip
-tar zxvf &plg;/pip-1.3.tar.gz -C /tmp -o
-cd pip-1.3
+tar zxvf &plg;/pip-1.4.tar.gz -C /tmp -o
+cd pip-1.4
 python setup.py install
-cd ..
-rm -rf pip-1.3.tar.gz
 
 # install gateone prerequsities
 pip install tornado
