@@ -533,7 +533,7 @@ if (is_dir($dropbox_cfg['DROPBOXDIR'])) {
 }
 #Also, it changes the Dropbox Database dir right after the initial daemon start.  So for completeness, make that more permission friendly too
 #even though it's less of an issue as this dir is only ever accessed by the deamon itself and so technically it should never be noticed.
-if (is_dir($dropbox_cfg['DROPBOXDIR'])) {
+if (is_dir($dropbox_cfg['DROPBOXDBDIR'])) {
   chmod($dropbox_cfg['DROPBOXDBDIR'],0775);
 }
 
