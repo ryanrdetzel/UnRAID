@@ -34,8 +34,8 @@ Plugin file locations:
  
  /boot/packages/infozip-6.0-i486-1.txz                                          # manadatory package dependency
  /boot/packages/par2cmdline_tbb-0.4-i486-1kh.tgz                                # manadatory package dependency
- /boot/packages/python-2.6.6-i486-1.txz                                         # manadatory package dependency
- /boot/packages/python-cheetah-2.4.4-i486-1alien.tgz                            # manadatory package dependency
+ /boot/packages/python-2.7.3-i486-2.txz                                         # manadatory package dependency
+ /boot/packages/python-cheetah-2.4.4-i486-1rj.tgz                               # manadatory package dependency
  /boot/packages/python-yenc-0.3-i486-1alien.tgz                                 # manadatory package dependency
  /boot/packages/pyopenssl-0.11-i486-1alien.tgz                                  # manadatory package dependency
  /boot/packages/sqlite-3.7.5-i486-1.txz                                         # manadatory package dependency
@@ -95,12 +95,12 @@ rm -f /tmp/plugin-prepare
 <URL>-q --no-check-certificate &url2;/plugin.images/information.png</URL>
 </FILE>
 
-<FILE Name="/boot/packages/python-2.6.6-i486-1.txz" Run="upgradepkg --install-new">
-<URL>-q --no-check-certificate &url2;/packages.generic/python-2.6.6-i486-1.txz</URL>
+<FILE Name="&pkg;/python-2.7.3-i486-2.txz" Run="upgradepkg --install-new">
+<URL>-q --no-check-certificate &url2;/packages.generic/python-2.7.3-i486-2.txz</URL>
 </FILE>
 
-<FILE Name="/boot/packages/python-cheetah-2.4.4-i486-1alien.tgz" Run="upgradepkg --install-new">
-<URL>-q --no-check-certificate &url2;/packages.generic/python-cheetah-2.4.4-i486-1alien.tgz</URL>
+<FILE Name="/boot/packages/python-cheetah-2.4.4-i486-1rj.tgz" Run="upgradepkg --install-new">
+<URL>-q --no-check-certificate &url2;/packages.custom/python-cheetah-2.4.4-i486-1rj.tgz</URL>
 </FILE>
 
 <FILE Name="/boot/packages/python-yenc-0.3-i486-1alien.tgz" Run="upgradepkg --install-new">
