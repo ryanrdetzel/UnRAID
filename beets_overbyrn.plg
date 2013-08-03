@@ -3,7 +3,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY plugin "Beets">
 <!ENTITY author "overbyrn">
-<!ENTITY plgver "1.4">
+<!ENTITY plgver "1.4a">
 <!ENTITY pkg "/boot/packages">
 <!ENTITY plg "/boot/config/plugins/beets">
 <!ENTITY img "/boot/config/plugins/images">
@@ -860,10 +860,10 @@ rm /tmp/plugin-install
 <INLINE>
 Menu="NetworkServices"
 Icon="beets.png"
-Version=&plgver;
-Author=&author;
+Version="&plgver;"
+Author="&author;"
 Type="php"
-Title=&plugin;
+Title="&plugin;"
 </INLINE>
 </FILE>
 
