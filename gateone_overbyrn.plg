@@ -3,7 +3,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY plugin "GateOne">
 <!ENTITY author "overbyrn">
-<!ENTITY plgver "1.0a">
+<!ENTITY plgver "1.0b">
 <!ENTITY pkg "/boot/packages">
 <!ENTITY plg "/boot/config/plugins/gateone">
 <!ENTITY img "/boot/config/plugins/images">
@@ -28,10 +28,10 @@ Plugin file locations:
  /tmp/plugin-install                                                    # installation script
 
  /boot/packages/python-2.6.6-i486-1.txz                                 # python 2.6 - primary dependency
- /boot/packages/setuptools-0.6c11-i686-5sl.txz                          # setuptools 0.6c11 - primary dependency
 
+ /boot/config/plugins/gateone/setuptools-0.9.8-py2.6.egg                # primary python package (req. for pip install)
+ /boot/config/plugins/gateone/pip-1.4.tar.gz                            # primary python package (req. for python package downloads/installs)
  /boot/config/plugins/gateone/dtach-0.8-i486-1rj.tgz                    # secondary package (required for terminal session resumption)
- /boot/config/plugins/gateone/pip-1.3.tar.gz                            # secondary package (required for installing supporting apps via pip)
  
  /boot/config/plugins/gateone/gateone.png                               # icon file (copied to webgui plugin dir)
  /boot/config/plugins/images/device_status.png                          # icon file (copied to webgui plugin dir)
@@ -84,10 +84,6 @@ rm -f /tmp/plugin-prepare
 <URL>-q --no-check-certificate &url2;/plugin.images/information.png</URL>
 </FILE>
 
-<FILE Name="&pkg;/setuptools-0.6c11-i686-5sl.txz" Run="upgradepkg --install-new">
-<URL>-q --no-check-certificate &url2;/packages.generic/setuptools-0.6c11-i686-5sl.txz</URL>
-</FILE>
-
 <FILE Name="&pkg;/python-2.6.6-i486-1.txz" Run="upgradepkg --install-new">
 <URL>-q --no-check-certificate &url2;/packages.generic/python-2.6.6-i486-1.txz</URL>
 </FILE>
@@ -96,8 +92,12 @@ rm -f /tmp/plugin-prepare
 <URL>-q --no-check-certificate &url2;/packages.custom/dtach-0.8-i486-1rj.tgz</URL>
 </FILE>
 
-<FILE Name="&plg;/pip-1.3.tar.gz">
-<URL>-q --no-check-certificate &url2;/packages.custom/pip-1.3.tar.gz</URL>
+<FILE Name="&plg;/setuptools-0.9.8-py2.6.egg">
+<URL>-q --no-check-certificate &url2;/packages.custom/setuptools-0.9.8-py2.6.egg</URL>
+</FILE>
+
+<FILE Name="&plg;/pip-1.4.tar.gz">
+<URL>-q --no-check-certificate &url2;/packages.custom/pip-1.4.tar.gz</URL>
 </FILE>
 
 <FILE Name="&plg;/master.tgz">
@@ -800,12 +800,13 @@ mv /usr/local/liftoff-GateOne-* /usr/local/gateone
 #cd ..
 #rm -rf liftoff-GateOne-*
 
+# install setuptools (needed for pip to install)
+&plg;/setuptools-0.9.8-py2.6.egg
+
 # install pip
-tar zxvf &plg;/pip-1.3.tar.gz -C /tmp -o
-cd pip-1.3
+tar zxvf &plg;/pip-1.4.tar.gz -C /tmp -o
+cd /tmp/pip-1.4
 python setup.py install
-cd ..
-rm -rf pip-1.3.tar.gz
 
 # install gateone prerequsities
 pip install tornado
@@ -826,8 +827,8 @@ chown -R nobody:users /usr/local/gateone
 # install dtach binary
 tar -zxvf &plg;/dtach-0.8-i486-1rj.tgz -C /usr/local/bin -o
 
-# cleanup tmp
-rm -rf pip-1.3.tar.gz pip-1.3 pip-build-root
+#cleanup tmp
+rm -rf /tmp/pip-1.4
 
 rm /tmp/plugin-install
 </INLINE>
