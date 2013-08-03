@@ -38,7 +38,7 @@ Plugin file locations:
  /boot/packages/python-cheetah-2.4.4-i486-1rj.tgz                               # manadatory package dependency
  /boot/packages/python-yenc-0.3-i486-1alien.tgz                                 # manadatory package dependency
  /boot/packages/pyopenssl-0.11-i486-1alien.tgz                                  # manadatory package dependency
- /boot/packages/sqlite-3.7.5-i486-1.txz                                         # manadatory package dependency
+ /boot/packages/sqlite-3.7.14.1-i486-1_slack14.0.txz                            # manadatory package dependency
  /boot/packages/unrar-4.2.4-i486-1alien.tgz                                     # manadatory package dependency
 
  /boot/config/plugins/sabnzbd/sabnzbd.png                                       # icon file (copied to webgui plugin dir)
@@ -107,8 +107,8 @@ rm -f /tmp/plugin-prepare
 <URL>-q --no-check-certificate &url2;/packages.generic/python-yenc-0.3-i486-1alien.tgz</URL>
 </FILE>
 
-<FILE Name="/boot/packages/sqlite-3.7.5-i486-1.txz" Run="upgradepkg --install-new">
-<URL>-q --no-check-certificate &url2;/packages.generic/sqlite-3.7.5-i486-1.txz</URL>
+<FILE Name="/boot/packages/sqlite-3.7.14.1-i486-1_slack14.0.txz" Run="upgradepkg --install-new">
+<URL>-q --no-check-certificate &url2;/packages.generic/sqlite-3.7.14.1-i486-1_slack14.0.txz</URL>
 </FILE>
 
 <FILE Name="/boot/packages/unrar-4.2.4-i486-1alien.tgz" Run="upgradepkg --install-new">
