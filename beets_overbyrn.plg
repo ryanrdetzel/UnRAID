@@ -3,7 +3,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY plugin "Beets">
 <!ENTITY author "overbyrn">
-<!ENTITY plgver "1.3">
+<!ENTITY plgver "1.4">
 <!ENTITY pkg "/boot/packages">
 <!ENTITY plg "/boot/config/plugins/beets">
 <!ENTITY img "/boot/config/plugins/images">
@@ -26,11 +26,11 @@ Plugin file locations:
  /tmp/plugin-cleanup                                                    # deletion script
  /tmp/plugin-install                                                    # installation script
 
- /boot/packages/setuptools-0.6c11-i686-5sl.txz                          # primary package (mandatory)
- /boot/packages/pip-1.3.tar.gz                                          # primary package (mandatory)
  /boot/packages/python-2.6.6-i486-1.txz                                 # primary package (mandatory)
  /boot/packages/sqlite-3.7.14.1-i486-1_slack14.0.txz                    # primary package (mandatory)
  
+ /boot/config/plugins/beets/setuptools-0.9.8-py2.6.egg                  # primary python package (req. for pip install)
+ /boot/config/plugins/beets/pip-1.4.tar.gz                              # primary python package (req. for python package downloads/installs)
  /boot/config/plugins/beets/ffmpeg.static.32bit.2013-04-06.tar.gz       # secondary package (required for beets convert)
  /boot/config/plugins/beets/mp3gain-1.4.6-i486-3sl.txz                  # secondary package (required for beets replygain)
 
@@ -85,10 +85,6 @@ rm -f /tmp/plugin-prepare
 <URL>-q --no-check-certificate &url2;/plugin.images/information.png</URL>
 </FILE>
 
-<FILE Name="&pkg;/setuptools-0.6c11-i686-5sl.txz" Run="upgradepkg --install-new">
-<URL>-q --no-check-certificate &url2;/packages.generic/setuptools-0.6c11-i686-5sl.txz</URL>
-</FILE>
-
 <FILE Name="&pkg;/python-2.6.6-i486-1.txz" Run="upgradepkg --install-new">
 <URL>-q --no-check-certificate &url2;/packages.generic/python-2.6.6-i486-1.txz</URL>
 </FILE>
@@ -105,8 +101,12 @@ rm -f /tmp/plugin-prepare
 <URL>-q --no-check-certificate &url2;/packages.custom/ffmpeg.static.32bit.2013-04-06.tar.gz</URL>
 </FILE>
 
-<FILE Name="&plg;/pip-1.3.tar.gz">
-<URL>-q --no-check-certificate &url2;/packages.custom/pip-1.3.tar.gz</URL>
+<FILE Name="&plg;/setuptools-0.9.8-py2.6.egg">
+<URL>-q --no-check-certificate &url2;/packages.custom/setuptools-0.9.8-py2.6.egg</URL>
+</FILE>
+
+<FILE Name="&plg;/pip-1.4.tar.gz">
+<URL>-q --no-check-certificate &url2;/packages.custom/pip-1.4.tar.gz</URL>
 </FILE>
 
 <FILE Name="&plg;/fpcalc">
@@ -819,22 +819,18 @@ function validateForm() {
 # install beets + supporting files
 cd /tmp
 
-# install pip
-tar zxvf &plg;/pip-1.3.tar.gz -C /tmp -o
-cd pip-1.3
-python setup.py install
-cd ..
-rm -rf pip-1.3.tar.gz
+# install setuptools (needed for pip to install)
+&plg;/setuptools-0.9.8-py2.6.egg
 
-# install ffmpeg (needed for beets convert function)
-tar zxvf &plg;/ffmpeg.static.32bit.2013-04-06.tar.gz -C /usr/bin
-rm -f ffmpeg.static.32bit.2013-04-06.tar.gz
+# install pip
+tar zxvf &plg;/pip-1.4.tar.gz -C /tmp -o
+cd /tmp/pip-1.4
+python setup.py install
 
 # install pylast (needed for lastgenre plugin)
 pip install pylast
 
 # install beets
-#pip install beets
 pip install beets
 
 # install discogs client libs - needed for discogs plugin
@@ -843,6 +839,10 @@ pip install discogs-client
 # install pyacoustid (needed for chromaprint)
 pip install pyacoustid
 
+# install ffmpeg (needed for beets convert function)
+tar zxvf &plg;/ffmpeg.static.32bit.2013-04-06.tar.gz -C /usr/bin
+rm -f ffmpeg.static.32bit.2013-04-06.tar.gz
+
 # copy Chromaprint binary to path
 cp &plg;/fpcalc /usr/local/sbin/fpcalc
 
@@ -850,7 +850,7 @@ cp &plg;/fpcalc /usr/local/sbin/fpcalc
 ! grep -q BEETSDIR /etc/profile &amp;&amp; sed -i '$a\export BEETSDIR='/\boot/\config/\plugins/\beets'' /etc/profile
 
 #cleanup tmp
-rm -rf pip-1.3.tar.gz pip-1.3 pip-build-root
+rm -rf /tmp/pip-1.4
 
 rm /tmp/plugin-install
 </INLINE>
