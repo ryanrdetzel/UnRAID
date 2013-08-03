@@ -3,7 +3,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY plugin "AirVideo">
 <!ENTITY author "overbyrn">
-<!ENTITY plgver "1.2">
+<!ENTITY plgver "1.2a">
 <!ENTITY pkgnam "airvideo">
 <!ENTITY pkg "/boot/packages">
 <!ENTITY plg "/boot/config/plugins/airvideo">
@@ -894,10 +894,10 @@ rm /tmp/plugin-install
 <INLINE>
 Menu="NetworkServices"
 Icon="airvideo.png"
-Version=&plgver;
-Author=&author;
+Version="&plgver;"
+Author="&author;"
 Type="php"
-Title=&plugin;
+Title="&plugin;"
 </INLINE>
 </FILE>
 
