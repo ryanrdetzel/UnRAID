@@ -3,7 +3,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY plugin "BTSync">
 <!ENTITY author "overbyrn">
-<!ENTITY plgver "1.5">
+<!ENTITY plgver "1.5a">
 <!ENTITY pkg "/boot/packages">
 <!ENTITY plg "/boot/config/plugins/btsync">
 <!ENTITY img "/boot/config/plugins/images">
@@ -1029,10 +1029,10 @@ rm /tmp/plugin-install
 <INLINE>
 Menu="NetworkServices"
 Icon="btsync.png"
-Version=&plgver;
-Author=&author;
+Version="&plgver;"
+Author="&author;"
 Type="php"
-Title=&plugin;
+Title="&plugin;"
 </INLINE>
 </FILE>
 
