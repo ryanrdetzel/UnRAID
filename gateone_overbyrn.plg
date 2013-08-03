@@ -3,7 +3,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY plugin "GateOne">
 <!ENTITY author "overbyrn">
-<!ENTITY plgver "1.0">
+<!ENTITY plgver "1.0a">
 <!ENTITY pkg "/boot/packages">
 <!ENTITY plg "/boot/config/plugins/gateone">
 <!ENTITY img "/boot/config/plugins/images">
@@ -837,10 +837,10 @@ rm /tmp/plugin-install
 <INLINE>
 Menu="NetworkServices"
 Icon="gateone.png"
-Version=&plgver;
-Author=&author;
+Version="&plgver;"
+Author="&author;"
 Type="php"
-Title=&plugin;
+Title="&plugin;"
 </INLINE>
 </FILE>
 
