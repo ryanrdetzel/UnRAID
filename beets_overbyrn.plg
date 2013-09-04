@@ -3,7 +3,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY plugin "Beets">
 <!ENTITY author "overbyrn">
-<!ENTITY plgver "1.4a">
+<!ENTITY plgver "1.4b">
 <!ENTITY pkg "/boot/packages">
 <!ENTITY plg "/boot/config/plugins/beets">
 <!ENTITY img "/boot/config/plugins/images">
@@ -462,15 +462,15 @@ $beets_cfg = parse_ini_file( "/boot/config/plugins/beets/beets.cfg");
     <table class="settings">
     <tr>
       <td><a class="tooltip" href="#">Default:<span class="classic">You can also configure the directory hierarchy beets uses to store music. Each string is a template string that can refer to metadata fields like $artist or $title. The filename extension is added automatically. You can specify three special paths: default for most releases, comp for "various artist" releases with no dominant artist, and singleton for non-album tracks. For more about these format strings, see Path Formats section of the Beets Documentation. Note that you almost certainly want to use $albumartist and not $artist. The latter refers to the "track artist" when present, which means that albums that have tracks from different artists on them will be placed into different folders.</span></a></td>
-      <td><input type="text" name="PATH_DEFAULT" id="PATH_DEFAULT" maxlength="60" value="<?=$beets_cfg['PATH_DEFAULT'];?>"></td>
+      <td><input type="text" name="PATH_DEFAULT" id="PATH_DEFAULT" maxlength="120" value="<?=$beets_cfg['PATH_DEFAULT'];?>"></td>
     </tr>
     <tr>
       <td>Singleton:</td>
-      <td><input type="text" name="PATH_SINGLETON" id="PATH_SINGLETON" maxlength="60" value="<?=$beets_cfg['PATH_SINGLETON'];?>"></td>
+      <td><input type="text" name="PATH_SINGLETON" id="PATH_SINGLETON" maxlength="120" value="<?=$beets_cfg['PATH_SINGLETON'];?>"></td>
     </tr>
     <tr>
       <td>Compilation:</td>
-      <td><input type="text" name="PATH_COMPILATION" id="PATH_COMPILATION" maxlength="60" value="<?=$beets_cfg['PATH_COMPILATION'];?>"></td>
+      <td><input type="text" name="PATH_COMPILATION" id="PATH_COMPILATION" maxlength="120" value="<?=$beets_cfg['PATH_COMPILATION'];?>"></td>
     </tr>
     </table>  
 
