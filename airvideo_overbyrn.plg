@@ -12,6 +12,7 @@
 <!ENTITY url1 "https://raw.github.com/overbyrn/UnRAID/master">
 <!ENTITY url2 "https://dl.dropbox.com/u/572553/UnRAID">
 <!ENTITY url3 "http://s3.amazonaws.com/AirVideo/Linux-2.4.6-beta3">
+<!ENTITY url4 "http://inmethod.com/airvideo/download/linux/alpha6/AirVideoServerLinux.jar">
 <!ENTITY dev "false"><!-- set to "true" during plugin development -->
 ]>
 
