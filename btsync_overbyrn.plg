@@ -3,7 +3,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY plugin "BTSync">
 <!ENTITY author "overbyrn">
-<!ENTITY plgver "1.5">
+<!ENTITY plgver "1.6">
 <!ENTITY pkg "/boot/packages">
 <!ENTITY plg "/boot/config/plugins/btsync">
 <!ENTITY img "/boot/config/plugins/images">
@@ -459,7 +459,7 @@ btsync_updateapp()
     sleep 1
     echo "Updating BTSync Application..."
     sleep 1
-    tar -zxvf /tmp/btsync_i386.tar.gz 2>/dev/null
+    tar -zxvf /tmp/btsync_i386.tar.gz -C /tmp 2>/dev/null
     cp -f /tmp/btsync /usr/local/btsync/btsync 2>/dev/null
     chown nobody:users /usr/local/btsync/btsync 2>/dev/null
     chmod 775 /usr/local/btsync/btsync 2>/dev/null
@@ -500,7 +500,7 @@ btsync_appver()
 	  fi	
     ;;
     'remote')
-      #VERSION=$(wget http://btsync.s3-website-us-east-1.amazonaws.com -q -O - | sed -e 's/<[a-zA-Z\/][^>]*>//g' | grep -i version | awk '{print $4}')
+      VERSION=$(wget http://btsync.s3-website-us-east-1.amazonaws.com -q -O - | grep -i version | sed -e 's/<h3>BitTorrent Sync version //I' -e 's/<\/h3>//I')
       if [ "$VERSION" == "" ]; then
         VERSION=Unknown
       fi
@@ -542,8 +542,6 @@ case "$1" in
     btsync_enable $1 $2 $3 $4 $5 $6 $7 $8 $9 ${10} ${11} ${12} ${13}
   ;;
   'disable')
-    echo "p10 = ${10}"
-	sleep 5
 	btsync_disable $1 $2 $3 $4 $5 $6 $7 $8 $9 ${10} ${11} ${12} ${13}
   ;;
   'install')
@@ -595,7 +593,7 @@ esac
 <![CDATA[
 <?PHP
 $btsync_cfg = parse_ini_file( "/boot/config/plugins/btsync/btsync.cfg");
-$btsync_installed = is_dir( $btsync_cfg['INSTALLDIR'] ) ? "yes" : "no";
+$btsync_installed = file_exists( "/usr/local/btsync/btsync" ) ? "yes" : "no";
 $btsync_localplg = shell_exec("/etc/rc.d/rc.btsync getver plg local");
 $btsync_remoteplg = shell_exec("/etc/rc.d/rc.btsync getver plg remote");
 $btsync_localapp = shell_exec("/etc/rc.d/rc.btsync getver app local");
@@ -1029,10 +1027,10 @@ rm /tmp/plugin-install
 <INLINE>
 Menu="NetworkServices"
 Icon="btsync.png"
-Version=&plgver;
-Author=&author;
+Version="&plgver;"
+Author="&author;"
 Type="php"
-Title=&plugin;
+Title="&plugin;"
 </INLINE>
 </FILE>
 

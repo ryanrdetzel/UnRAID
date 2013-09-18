@@ -3,7 +3,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY plugin "LMS">
 <!ENTITY author "overbyrn">
-<!ENTITY plgver "1.6">
+<!ENTITY plgver "1.6a">
 <!ENTITY pkg "/boot/packages">
 <!ENTITY plg "/boot/config/plugins/lms">
 <!ENTITY img "/boot/config/plugins/images">
@@ -902,10 +902,10 @@ rm /tmp/plugin-install
 <INLINE>
 Menu="NetworkServices"
 Icon="lms.png"
-Version=&plgver;
-Author=&author;
+Version="&plgver;"
+Author="&author;"
 Type="php"
-Title=&plugin;
+Title="&plugin;"
 </INLINE>
 </FILE>
 

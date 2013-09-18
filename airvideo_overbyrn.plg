@@ -3,7 +3,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY plugin "AirVideo">
 <!ENTITY author "overbyrn">
-<!ENTITY plgver "1.2">
+<!ENTITY plgver "1.2a">
 <!ENTITY pkgnam "airvideo">
 <!ENTITY pkg "/boot/packages">
 <!ENTITY plg "/boot/config/plugins/airvideo">
@@ -12,6 +12,7 @@
 <!ENTITY url1 "https://raw.github.com/overbyrn/UnRAID/master">
 <!ENTITY url2 "https://dl.dropbox.com/u/572553/UnRAID">
 <!ENTITY url3 "http://s3.amazonaws.com/AirVideo/Linux-2.4.6-beta3">
+<!ENTITY url4 "http://inmethod.com/airvideo/download/linux/alpha6/AirVideoServerLinux.jar">
 <!ENTITY dev "false"><!-- set to "true" during plugin development -->
 ]>
 
@@ -894,10 +895,10 @@ rm /tmp/plugin-install
 <INLINE>
 Menu="NetworkServices"
 Icon="airvideo.png"
-Version=&plgver;
-Author=&author;
+Version="&plgver;"
+Author="&author;"
 Type="php"
-Title=&plugin;
+Title="&plugin;"
 </INLINE>
 </FILE>
 
