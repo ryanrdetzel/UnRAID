@@ -220,7 +220,7 @@ nzbget_buttonstart()
 {
   CONFIG="/boot/config/plugins/nzbget/nzbget.cfg"
   if [ -f $CONFIG ]; then
-    # a less greedy sed.  only replaces the first occurance of diabled with enabled.  ie. will only hit service line which is (usually) always first in cfg
+    # a less greedy sed.  only replaces the first occurance of disabled with enabled.  ie. will only hit service line which is (usually) always first in cfg
 	sed -i "0,/"disable"/s/"disable"/"enable/"" $CONFIG 2>/dev/null
     SERVICE=enable
     nzbget_start
