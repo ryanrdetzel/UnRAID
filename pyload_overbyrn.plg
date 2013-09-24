@@ -22,30 +22,47 @@ Copyright 2013, Rich Manton (overbyrn)
 This Plugin installs and provides pyLoad support for unRAID.
 
 Plugin file locations:
- /boot/plugins/pyload_overbyrn.plg                                              # this file
- /tmp/plugin-prepare                                                            # network readiness script
- /tmp/plugin-cleanup                                                            # deletion script
- /tmp/plugin-chkcfg                                                             # config update check script
- /tmp/plugin-install                                                            # installation script
+ /boot/plugins/pyload_overbyrn.plg                                             # this file
+ /tmp/plugin-prepare                                                           # network readiness script
+ /tmp/plugin-cleanup                                                           # deletion script
+ /tmp/plugin-chkcfg                                                            # config update check script
+ /tmp/plugin-install                                                           # installation script
  
- /boot/packages/python-2.6.6-i486-1.txz                                         # primary package (mandatory)
+ /boot/packages/git-1.7.4.4-i486-1.txz                                         # pyload prerequisite package
+ /boot/packages/python-2.6.6-i486-1.txz                                        # pyload prerequisite package
+ /boot/packages/pycurl-7.19.0-i686-1.txz                                       # pyload prerequisite package
+ /boot/packages/curl-7.21.4-i486-1.txz                                         # pyload prerequisite package 
+ /boot/packages/sqlite-3.7.14.1-i486-1_slack14.0.txz                           # pyload prerequisite package
+ /boot/packages/infozip-6.0-i486-1.txz                                         # pyload prerequisite package (unzip)
+ /boot/packages/unrar-4.2.4-i486-1alien.tgz                                    # pyload prerequisite package (unrar)
+ /boot/packages/zlib-1.2.5-i486-4.txz                                          # curl dependency
+ /boot/packages/libidn-1.19-i486-1.txz                                         # curl dependency
+
+ /boot/packages/pycrypto-2.0.1-i486-1gsb.txz                                   # pyload optional package
+ /boot/packages/spidermonkey-1.7.0-i486-3ng.txz                                # pyload optional package
+ /boot/packages/tesseract-3.00-i486-1sl.txz                                    # pyload optional package 
+ /boot/packages/pil-1.1.7-i486-1.txz                                           # pyload optional package
+ /boot/packages/libjpeg-v8a-i486-1.txz                                         # pyload optional package
+ /boot/packages/libpng-1.4.12-i486-1_slack13.1.txz                             # pyload optional package
+ /boot/packages/libtiff-3.9.6-i486-1_slack13.1.txz                             # pyload optional package 
+
+ /boot/config/plugins/pyload/pyload.png                                        # icon file (copied to webgui plugin dir)
+ /boot/config/plugins/images/device_status.png                                 # icon file (copied to webgui plugin dir)
+ /boot/config/plugins/images/new_config.png                                    # icon file (copied to webgui plugin dir)
+ /boot/config/plugins/images/information.png                                   # icon file (copied to webgui plugin dir)
  
- /boot/config/plugins/pyload/pyload.png                                         # icon file (copied to webgui plugin dir)
- /boot/config/plugins/images/device_status.png                                  # icon file (copied to webgui plugin dir)
- /boot/config/plugins/images/new_config.png                                     # icon file (copied to webgui plugin dir)
- /boot/config/plugins/images/information.png                                    # icon file (copied to webgui plugin dir)
+ /boot/config/plugins/pyload/pyload.cfg                                        # non-volatile configuration
+ /boot/config/plugins/pyload/files.db                                          # default pyload sqlite db (contains initial admin userid)
+ /etc/rc.d/rc.pyload                                                           # plugin control script
+ /usr/local/emhttp/plugins/pyload/pyload.page                                  # page file for webGui menu system
+ /usr/local/emhttp/plugins/pyload/pyload.php                                   # webGui page code
+ /usr/local/emhttp/plugins/pyload/pyloadeoctl.php                              # webGui back-end control 
  
- /boot/config/plugins/pyload/pyload.cfg                                         # non-volatile configuration
- /etc/rc.d/rc.pyload                                                            # plugin control script
- /usr/local/emhttp/plugins/pyload/pyload.page                                   # page file for webGui menu system
- /usr/local/emhttp/plugins/pyload/pyload.php                                    # webGui page code
- /usr/local/emhttp/plugins/pyload/pyloadeoctl.php                               # webGui back-end control 
- 
- /usr/local/emhttp/plugins/pyload/event/disks_mounted                           # script to execute for emhttp event
- /usr/local/emhttp/plugins/pyload/event/unmounting_disks                        # script to execute for emhttp event
- /var/log/plugins/pyload                                                        # created upon install success
- /usr/local/pyload                                                              # application installation location
- /var/run/pyload/pyload.pid                                                     # run-time pid file
+ /usr/local/emhttp/plugins/pyload/event/disks_mounted                          # script to execute for emhttp event
+ /usr/local/emhttp/plugins/pyload/event/unmounting_disks                       # script to execute for emhttp event
+ /var/log/plugins/pyload                                                       # created upon install success
+ /usr/local/pyload                                                             # application installation location
+ /var/run/pyload/pyload.pid                                                    # run-time pid file
 
 -->
 
@@ -284,7 +301,18 @@ downloadTime - "Download Time":
 <INLINE>
 <![CDATA[
 #!/bin/bash
-# no config check requirement at this time
+
+# try and account for previous pyload plugin version. add new pyload.cfg options if missing
+paramchk=$(cat /boot/config/plugins/pyload/pyload.cfg | grep INSTALL_URL)
+if [[ $paramchk = "" ]]; then
+    echo "" >> /boot/config/plugins/pyload/pyload.cfg
+    echo "INSTALL_URL=\"https://github.com/pyload/pyload.git\"" >> /boot/config/plugins/pyload/pyload.cfg
+fi
+paramchk=$(cat /boot/config/plugins/pyload/pyload.cfg | grep BRANCH)
+if [[ $paramchk = "" ]]; then
+    echo "" >> /boot/config/plugins/pyload/pyload.cfg
+    echo "BRANCH=\"stable\"" >> /boot/config/plugins/pyload/pyload.cfg
+fi
 
 rm /tmp/plugin-chkcfg
 ]]>
@@ -653,48 +681,41 @@ $pyload_localapp = shell_exec("/etc/rc.d/rc.pyload getver app local");
 $pyload_remoteapp = shell_exec("/etc/rc.d/rc.pyload getver app remote");
 if ($pyload_installed=="yes") {
   $pyload_running = file_exists( "/var/run/pyload/pyload.pid" ) ? "yes" : "no";
+  $pyload_datacheck = shell_exec ( "/etc/rc.d/rc.pyload datacheck" );
 }
 $controls_exist = "false";
 $updates_exist = "false";
+
 ?>
 
 <html>
 <head></head>
 <body>
-
-<div style="width: 49%; float:left; border: 0px solid black;">
+ 
+<div style="width: 49%; float:left; border: 0px solid black;"> 
   <div id="title">
     <span class="left">Status:&nbsp;<img src='/plugins/pyload/device_status.png'>
-      <?if ($pyload_running=="yes"):?>
-        <span class="green"><a href="http://<?=$var['NAME'];?>:<?=$pyload_cfg['INSTALL_PORT'];?>" style="color: green; text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'" title="Click here to open pyLoad web page.&#13;Default Login:&#13;UserID: admin&#13;Passwd: admin" target="_blank"><span class="green"><b>pyLoad is RUNNING on port <?=$pyload_cfg['INSTALL_PORT'];?></b></span></a></span>
+      <?if ($pyload_installed=="yes"):?>
+        <?if ($pyload_running=="yes"):?>
+          <span class="green"><a href="http://<?=$var['NAME'];?>:<?=$pyload_cfg['INSTALL_PORT'];?>" style="color: green; text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'" title="Click here to open pyLoad web page.&#13;Default Login:&#13;UserID: admin&#13;Passwd: admin" target="_blank"><span class="green"><b>pyLoad is RUNNING on port <?=$pyload_cfg['INSTALL_PORT'];?></b></span></a></span>
+        <?else:?>
+          <span class="red"><b>NOT RUNNING</b></span>
+        <?endif;?>
       <?else:?>
-        <span class="red"><b>pyLoad is NOT RUNNING</b></span>
-      <?endif;?>      
+        <span class="red"><b>NOT INSTALLED</b></span>
+      <?endif;?>
     </span>
-  </div>
-
-  <?if ($pyload_installed=="yes"):?>
+  </div>  
+  
+  <?if ($pyload_installed=="yes"): ?>
     <div style="border: 0px solid black;">
       <span class="left">
         <?=$pyload_datacheck?>
 	  </span>
-    </div>
-  <?endif;?>
-
+    </div>  
+  <?endif;?>   
+       
   <br>
-  
-  <div style="border: 0px solid black;">
-    <span class="left">
-      <p>
-        <span class="green-text"><b><?=$denyhosts_localapp?></b></span>
-          <? if ($pyload_running=="yes"): ?>
-            <?=$pyload_datacheck?> 
-          <?endif;?> 
-      </p>
-    </span>
-  </div>
-  
-  <br></br>
    
   <div style="border: 0px solid black;">
     <table>
@@ -851,72 +872,81 @@ $updates_exist = "false";
     <form name="pyload_settings" method="POST" action="/plugins/pyload/pyloadctl.php" target="progressFrame" onsubmit="return validateForm();">
     <input type="hidden" name="cmd" value="apply">
       <table class="settings">
-         <tr>
-         <td>Enable pyLoad:</td>
-         <td><select name="SERVICE" size="1"  onChange="checkRUNNING(this.form);">
-            <?=mk_option($pyload_cfg['SERVICE'], "disable", "No");?>
-            <?=mk_option($pyload_cfg['SERVICE'], "enable", "Yes");?>
-            </select></td>
-         </tr>
         <tr>
-        <td>Run as user:</td>
-        <td><select name="RUNAS" size="1" onChange="checkRUNNING(this.form);">
-          <?=mk_option($pyload_cfg['RUNAS'], "nobody", "nobody");?>
-          <?=mk_option($pyload_cfg['RUNAS'], "root", "root");?>
-          </select>&nbsp;<img src="/plugins/pyload/information.png" title="User which will run pyLoad daemon process"/></td>
+          <td>Enable pyLoad:</td>
+          <td>
+            <select name="SERVICE" size="1"  onChange="checkRUNNING(this.form);">
+              <?=mk_option($pyload_cfg['SERVICE'], "disable", "No");?>
+              <?=mk_option($pyload_cfg['SERVICE'], "enable", "Yes");?>
+            </select>
+          </td>
+        </tr>
+
+        <tr>
+          <td>Run as user:</td>
+          <td>
+            <select name="RUNAS" size="1" title="User which will run pyLoad daemon process" onChange="checkRUNNING(this.form);">
+              <?=mk_option($pyload_cfg['RUNAS'], "nobody", "nobody");?>
+              <?=mk_option($pyload_cfg['RUNAS'], "root", "root");?>
+              </select>
+          </td>
         </tr>
         <tr>
-        <td>Install Directory:</td>
-        <td><input type="text" name="INSTALLDIR" value="<?=$pyload_cfg['INSTALLDIR'];?>">&nbsp;<img src="/plugins/pyload/information.png" title="Directory where pyLoad will be installed, e.g. /mnt/cache/.pyload"/></td>
+          <td>Install Directory:</td>
+          <td><input type="text" name="INSTALLDIR" title="Directory where pyLoad will be installed, e.g. /mnt/cache/.pyload" value="<?=$pyload_cfg['INSTALLDIR'];?>"></td>
         </tr>
         <tr>
-        <td>Create Logs:</td>
-        <td><select name="CREATE_LOG" size="1"  onChange="checkRUNNING(this.form);">
-           <?=mk_option($pyload_cfg['CREATE_LOG'], "False", "No");?>
-           <?=mk_option($pyload_cfg['CREATE_LOG'], "True", "Yes");?>
-           </select>&nbsp;<img src="/plugins/pyload/information.png" title="Keep logs on what pyLoad is doing"/></td></td>
+          <td>Create Logs:</td>
+          <td>
+            <select name="CREATE_LOG" size="1" title="Should pyLoad create log files?" onChange="checkRUNNING(this.form);">
+             <?=mk_option($pyload_cfg['CREATE_LOG'], "False", "No");?>
+             <?=mk_option($pyload_cfg['CREATE_LOG'], "True", "Yes");?>
+             </select>
+          </td>
         </tr>        
         <tr>
-        <td>Log File Directory:</td>
-        <td><input type="text" name="LOG_DIR" value="<?=$pyload_cfg['LOG_DIR'];?>">&nbsp;<img src="/plugins/pyload/information.png" title="Directory where pyLoad will keep logs, e.g. /var/log/pyload"/></td>
+          <td>Log File Directory:</td>
+          <td><input type="text" name="LOG_DIR" title="Directory where pyLoad will keep logs, e.g. /mnt/cache/.pyload/logs" value="<?=$pyload_cfg['LOG_DIR'];?>"></td>
         </tr>
         <tr>
-        <td>Log Count:</td>
-        <td><input type="text" name="LOG_COUNT" value="<?=$pyload_cfg['LOG_COUNT'];?>">&nbsp;<img src="/plugins/pyload/information.png" title="Number of logs pyLoad will keep before deleting old ones"/></td>
+          <td>Log Count:</td>
+          <td><input type="text" name="LOG_COUNT" title="Number of logs pyLoad will keep before deleting old ones" value="<?=$pyload_cfg['LOG_COUNT'];?>"></td>
         </tr>        
         <tr>
-        <td>Download Directory:</td>
-        <td><input type="text" name="DOWNLOAD_DIR" value="<?=$pyload_cfg['DOWNLOAD_DIR'];?>">&nbsp;<img src="/plugins/pyload/information.png" title="Were downloaded files will be placed"/></td>
+          <td>Download Directory:</td>
+          <td><input type="text" name="DOWNLOAD_DIR" title="Where downloaded files will be placed" value="<?=$pyload_cfg['DOWNLOAD_DIR'];?>"></td>
         </tr>
         <tr>
-        <td>Minimum Free Space:</td>
-        <td><input type="text" name="MIN_FREE_SPACE" value="<?=$pyload_cfg['MIN_FREE_SPACE'];?>">&nbsp;<img src="/plugins/pyload/information.png" title="pyLoad will stop downloading when it reaches this min-free-space (in MB)"/></td>
+          <td>Minimum Free Space:</td>
+          <td><input type="text" name="MIN_FREE_SPACE" title="pyLoad will stop downloading when it reaches this min-free-space (in MB)" value="<?=$pyload_cfg['MIN_FREE_SPACE'];?>"></td>
         </tr>
         <tr>
-        <td>Installation Host:</td>
-        <td><input type="text" name="INSTALL_HOST" value="<?=$pyload_cfg['INSTALL_HOST'];?>">&nbsp;<img src="/plugins/pyload/information.png" title="IP Address pyLoad WebGui listens on. e.g. 0.0.0.0"/></td>
+          <td>Installation Host:</td>
+          <td><input type="text" name="INSTALL_HOST" title="IP Address pyLoad WebGui listens on. e.g. 0.0.0.0" value="<?=$pyload_cfg['INSTALL_HOST'];?>"></td>
         </tr>
         <tr>
-        <td>Port:</td>
-        <td><input type="text" name="INSTALL_PORT" value="<?=$pyload_cfg['INSTALL_PORT'];?>">&nbsp;<img src="/plugins/pyload/information.png" title="Port pyLoad WebGui listens on (must be higher than 1024), e.g. 8085"/></td>
+          <td>Port:</td>
+          <td><input type="text" name="INSTALL_PORT" title="Port pyLoad WebGui listens on (must be higher than 1024)" value="<?=$pyload_cfg['INSTALL_PORT'];?>"></td>
         </tr>
         <tr>
-        <td>Maximum Parallel Downloads:</td>
-        <td><input type="text" name="MAX_PARALLEL_DOWNLOAD" value="<?=$pyload_cfg['MAX_PARALLEL_DOWNLOAD'];?>">&nbsp;<img src="/plugins/pyload/information.png" title="The number of downloads that should run at the same time.  A high number could effect your internet speed"/></td>
+          <td>Maximum Parallel Downloads:</td>
+          <td><input type="text" name="MAX_PARALLEL_DOWNLOAD" title="The number of downloads that should run at the same time.  A high number could effect your internet speed" value="<?=$pyload_cfg['MAX_PARALLEL_DOWNLOAD'];?>"></td>
         </tr>
-        <td>Limit Download Speed:</td>
-        <td><select name="LIMIT_DOWNLOAD_SPEED" size="1"  onChange="checkRUNNING(this.form);">
-           <?=mk_option($pyload_cfg['LIMIT_DOWNLOAD_SPEED'], "False", "No");?>
-           <?=mk_option($pyload_cfg['LIMIT_DOWNLOAD_SPEED'], "True", "Yes");?>
-           </select>&nbsp;<img src="/plugins/pyload/information.png" title="Limit the download speed so as to not effect the remainder of your internet activity"/></td>
+          <td>Limit Download Speed:</td>
+          <td>
+            <select name="LIMIT_DOWNLOAD_SPEED" size="1" title="Limit the download speed so as to not affect the remainder of your internet activity" onChange="checkRUNNING(this.form);">
+              <?=mk_option($pyload_cfg['LIMIT_DOWNLOAD_SPEED'], "False", "No");?>
+              <?=mk_option($pyload_cfg['LIMIT_DOWNLOAD_SPEED'], "True", "Yes");?>
+            </select>
+          </td>
         </tr>
         <tr>
-        <td>Download Speed:</td>
-        <td><input type="text" name="DOWNLOAD_SPEED" value="<?=$pyload_cfg['DOWNLOAD_SPEED'];?>">&nbsp;<img src="/plugins/pyload/information.png" title="Set the download speed maximum, in KB/s"/></td>
+          <td>Download Speed:</td>
+          <td><input type="text" name="DOWNLOAD_SPEED" title="Set the download speed maximum, in KB/s. Set to -1 for no limit" value="<?=$pyload_cfg['DOWNLOAD_SPEED'];?>"></td>
         </tr>   
         <tr>
-        <td>Maximum Connections per Download:</td>
-        <td><input type="text" name="MAX_CONNECTIONS_PER_DOWNLOAD" value="<?=$pyload_cfg['MAX_CONNECTIONS_PER_DOWNLOAD'];?>">&nbsp;<img src="/plugins/pyload/information.png" title="The maximum number of connections per download."/></td>
+          <td>Maximum Connections per Download:</td>
+          <td><input type="text" name="MAX_CONNECTIONS_PER_DOWNLOAD" title="The maximum number of connections per download" value="<?=$pyload_cfg['MAX_CONNECTIONS_PER_DOWNLOAD'];?>"></td>
         </tr>            
         <tr>      
       </table>
