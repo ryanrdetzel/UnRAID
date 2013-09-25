@@ -3,7 +3,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY plugin "pyLoad">
 <!ENTITY author "overbyrn">
-<!ENTITY plgver "0.4">
+<!ENTITY plgver "0.5">
 <!ENTITY pkgnam "pyload">
 <!ENTITY pkg "/boot/packages">
 <!ENTITY plg "/boot/config/plugins/pyload">
@@ -869,13 +869,13 @@ $updates_exist = "false";
   <div id="title">
     <span class="left">Configuration:&nbsp;<img src='/plugins/pyload/new_config.png'></span>
   </div>
-    <form name="pyload_settings" method="POST" action="/plugins/pyload/pyloadctl.php" target="progressFrame" onsubmit="return validateForm();">
-    <input type="hidden" name="cmd" value="apply">
+    <form name="pyload_settings" method="POST" action="/update.htm" target="progressFrame" onsubmit=" validateForm();">
+    <input type="hidden" name="cmd" value="/etc/rc.d/rc.pyload">
       <table class="settings">
         <tr>
           <td>Enable pyLoad:</td>
           <td>
-            <select name="SERVICE" size="1"  onChange="checkRUNNING(this.form);">
+            <select name="arg1" id="arg1" size="1"  onChange="checkRUNNING(this.form);">
               <?=mk_option($pyload_cfg['SERVICE'], "disable", "No");?>
               <?=mk_option($pyload_cfg['SERVICE'], "enable", "Yes");?>
             </select>
@@ -885,7 +885,7 @@ $updates_exist = "false";
         <tr>
           <td>Run as user:</td>
           <td>
-            <select name="RUNAS" size="1" title="User which will run pyLoad daemon process" onChange="checkRUNNING(this.form);">
+            <select name="arg2" id="arg2" size="1" title="User which will run pyLoad daemon process" onChange="checkRUNNING(this.form);">
               <?=mk_option($pyload_cfg['RUNAS'], "nobody", "nobody");?>
               <?=mk_option($pyload_cfg['RUNAS'], "root", "root");?>
               </select>
@@ -893,12 +893,12 @@ $updates_exist = "false";
         </tr>
         <tr>
           <td>Install Directory:</td>
-          <td><input type="text" name="INSTALLDIR" title="Directory where pyLoad will be installed, e.g. /mnt/cache/.pyload" value="<?=$pyload_cfg['INSTALLDIR'];?>"></td>
+          <td><input type="text" name="arg3" id="arg3" title="Directory where pyLoad will be installed, e.g. /mnt/cache/.pyload" value="<?=$pyload_cfg['INSTALLDIR'];?>"></td>
         </tr>
         <tr>
           <td>Create Logs:</td>
           <td>
-            <select name="CREATE_LOG" size="1" title="Should pyLoad create log files?" onChange="checkRUNNING(this.form);">
+            <select name="arg4" id="arg4" size="1" title="Should pyLoad create log files?" onChange="checkRUNNING(this.form);">
              <?=mk_option($pyload_cfg['CREATE_LOG'], "False", "No");?>
              <?=mk_option($pyload_cfg['CREATE_LOG'], "True", "Yes");?>
              </select>
@@ -906,35 +906,35 @@ $updates_exist = "false";
         </tr>        
         <tr>
           <td>Log File Directory:</td>
-          <td><input type="text" name="LOG_DIR" title="Directory where pyLoad will keep logs, e.g. /mnt/cache/.pyload/logs" value="<?=$pyload_cfg['LOG_DIR'];?>"></td>
+          <td><input type="text" name="arg5" id="arg5" title="Directory where pyLoad will keep logs, e.g. /mnt/cache/.pyload/logs" value="<?=$pyload_cfg['LOG_DIR'];?>"></td>
         </tr>
         <tr>
           <td>Log Count:</td>
-          <td><input type="text" name="LOG_COUNT" title="Number of logs pyLoad will keep before deleting old ones" value="<?=$pyload_cfg['LOG_COUNT'];?>"></td>
+          <td><input type="text" name="arg6" id="arg6" title="Number of logs pyLoad will keep before deleting old ones" value="<?=$pyload_cfg['LOG_COUNT'];?>"></td>
         </tr>        
         <tr>
           <td>Download Directory:</td>
-          <td><input type="text" name="DOWNLOAD_DIR" title="Where downloaded files will be placed" value="<?=$pyload_cfg['DOWNLOAD_DIR'];?>"></td>
+          <td><input type="text" name="arg7" id="arg7" title="Where downloaded files will be placed" value="<?=$pyload_cfg['DOWNLOAD_DIR'];?>"></td>
         </tr>
         <tr>
           <td>Minimum Free Space:</td>
-          <td><input type="text" name="MIN_FREE_SPACE" title="pyLoad will stop downloading when it reaches this min-free-space (in MB)" value="<?=$pyload_cfg['MIN_FREE_SPACE'];?>"></td>
+          <td><input type="text" name="arg8" id="arg8" title="pyLoad will stop downloading when it reaches this min-free-space (in MB)" value="<?=$pyload_cfg['MIN_FREE_SPACE'];?>"></td>
         </tr>
         <tr>
           <td>Installation Host:</td>
-          <td><input type="text" name="INSTALL_HOST" title="IP Address pyLoad WebGui listens on. e.g. 0.0.0.0" value="<?=$pyload_cfg['INSTALL_HOST'];?>"></td>
+          <td><input type="text" name="arg9" id="arg9" title="IP Address pyLoad WebGui listens on. e.g. 0.0.0.0" value="<?=$pyload_cfg['INSTALL_HOST'];?>"></td>
         </tr>
         <tr>
           <td>Port:</td>
-          <td><input type="text" name="INSTALL_PORT" title="Port pyLoad WebGui listens on (must be higher than 1024)" value="<?=$pyload_cfg['INSTALL_PORT'];?>"></td>
+          <td><input type="text" name="arg10" id="arg10" title="Port pyLoad WebGui listens on (must be higher than 1024)" value="<?=$pyload_cfg['INSTALL_PORT'];?>"></td>
         </tr>
         <tr>
           <td>Maximum Parallel Downloads:</td>
-          <td><input type="text" name="MAX_PARALLEL_DOWNLOAD" title="The number of downloads that should run at the same time.  A high number could effect your internet speed" value="<?=$pyload_cfg['MAX_PARALLEL_DOWNLOAD'];?>"></td>
+          <td><input type="text" name="arg11" id="arg11" title="The number of downloads that should run at the same time.  A high number could effect your internet speed" value="<?=$pyload_cfg['MAX_PARALLEL_DOWNLOAD'];?>"></td>
         </tr>
           <td>Limit Download Speed:</td>
           <td>
-            <select name="LIMIT_DOWNLOAD_SPEED" size="1" title="Limit the download speed so as to not affect the remainder of your internet activity" onChange="checkRUNNING(this.form);">
+            <select name="arg12" size="1" id="arg12" title="Limit the download speed so as to not affect the remainder of your internet activity" onChange="checkRUNNING(this.form);">
               <?=mk_option($pyload_cfg['LIMIT_DOWNLOAD_SPEED'], "False", "No");?>
               <?=mk_option($pyload_cfg['LIMIT_DOWNLOAD_SPEED'], "True", "Yes");?>
             </select>
@@ -942,11 +942,11 @@ $updates_exist = "false";
         </tr>
         <tr>
           <td>Download Speed:</td>
-          <td><input type="text" name="DOWNLOAD_SPEED" title="Set the download speed maximum, in KB/s. Set to -1 for no limit" value="<?=$pyload_cfg['DOWNLOAD_SPEED'];?>"></td>
+          <td><input type="text" name="arg13" id="arg13" title="Set the download speed maximum, in KB/s. Set to -1 for no limit" value="<?=$pyload_cfg['DOWNLOAD_SPEED'];?>"></td>
         </tr>   
         <tr>
           <td>Maximum Connections per Download:</td>
-          <td><input type="text" name="MAX_CONNECTIONS_PER_DOWNLOAD" title="The maximum number of connections per download" value="<?=$pyload_cfg['MAX_CONNECTIONS_PER_DOWNLOAD'];?>"></td>
+          <td><input type="text" name="arg14" id="arg14" title="The maximum number of connections per download" value="<?=$pyload_cfg['MAX_CONNECTIONS_PER_DOWNLOAD'];?>"></td>
         </tr>            
         <tr>      
       </table>
@@ -959,40 +959,40 @@ $updates_exist = "false";
 </div>
 
 <script type="text/javascript">
+function validateForm()
+{
+  document.getElementById('arg2').disabled = false;
+  document.getElementById('arg3').disabled = false;
+  document.getElementById('arg4').disabled = false;
+  document.getElementById('arg5').disabled = false;
+  document.getElementById('arg6').disabled = false;
+  document.getElementById('arg7').disabled = false;
+  document.getElementById('arg8').disabled = false;
+  document.getElementById('arg9').disabled = false;
+  document.getElementById('arg10').disabled = false;
+  document.getElementById('arg11').disabled = false;
+  document.getElementById('arg12').disabled = false;
+  document.getElementById('arg13').disabled = false;
+  document.getElementById('arg14').disabled = false;
+}
+
 function checkRUNNING(form)
 {
   if ("<?=$pyload_running;?>" == "yes") {
-    form.RUNAS.disabled = true;
-    form.INSTALLDIR.disabled = true;
-    form.CREATE_LOG.disabled = true;
-    form.LOG_DIR.disabled = true;
-    form.LOG_COUNT.disabled = true;
-    form.DOWNLOAD_DIR.disabled = true;
-    form.MIN_FREE_SPACE.disabled = true;
-    form.INSTALL_HOST.disabled = true;
-    form.INSTALL_PORT.disabled = true;
-    form.MAX_PARALLEL_DOWNLOAD.disabled = true;
-    form.LIMIT_DOWNLOAD_SPEED.disabled = true;
-    form.DOWNLOAD_SPEED.disabled = true;
-    form.MAX_CONNECTIONS_PER_DOWNLOAD.disabled = true;  
+    form.arg2.disabled = true;
+    form.arg3.disabled = true;
+    form.arg4.disabled = true;
+    form.arg5.disabled = true;
+    form.arg6.disabled = true;
+    form.arg7.disabled = true;
+    form.arg8.disabled = true;
+    form.arg9.disabled = true;
+    form.arg10.disabled = true;
+    form.arg11.disabled = true;
+    form.arg12.disabled = true;
+    form.arg13.disabled = true;
+    form.arg14.disabled = true;
   }
-}
-
-function validateForm()
-{
-  document.forms["pyload_settings"]["RUNAS"].disabled = false;
-  document.forms["pyload_settings"]["INSTALLDIR"].disabled = false;
-  document.forms["pyload_settings"]["CREATE_LOG"].disabled = false;
-  document.forms["pyload_settings"]["LOG_DIR"].disabled = false;
-  document.forms["pyload_settings"]["LOG_COUNT"].disabled = false;
-  document.forms["pyload_settings"]["DOWNLOAD_DIR"].disabled = false;
-  document.forms["pyload_settings"]["MIN_FREE_SPACE"].disabled = false;
-  document.forms["pyload_settings"]["INSTALL_HOST"].disabled = false;
-  document.forms["pyload_settings"]["INSTALL_PORT"].disabled = false;
-  document.forms["pyload_settings"]["MAX_PARALLEL_DOWNLOAD"].disabled = false;
-  document.forms["pyload_settings"]["LIMIT_DOWNLOAD_SPEED"].disabled = false;
-  document.forms["pyload_settings"]["DOWNLOAD_SPEED"].disabled = false;
-  document.forms["pyload_settings"]["MAX_CONNECTIONS_PER_DOWNLOAD"].disabled = false;
 }
 
 checkRUNNING(document.pyload_settings);
@@ -1000,124 +1000,6 @@ checkRUNNING(document.pyload_settings);
 
 </body>
 </html>
-]]>
-</INLINE>
-</FILE>
-
-
-<FILE Name="/usr/local/emhttp/plugins/pyload/pyloadctl.php" Mode="0770">
-<INLINE>
-<![CDATA[
-<?PHP
-  $logfile = "/var/log/plugins/pyload";
-  $configfile = "/boot/config/plugins/pyload/pyload.cfg";
-
-  if (empty($_SERVER['SHELL']))
-    $newline = "<br>";
-  else
-    $newline = "\n";
-
-  $cur_dt = date("F j\, Y h:i:s A");
-  write_log("\nStart: $cur_dt");
- 
-  $settings = array(
-    "SERVICE",
-    "RUNAS",
-    "INSTALLDIR",
-    "CREATE_LOG",
-    "LOG_DIR",
-    "LOG_COUNT",
-    "DOWNLOAD_DIR",
-    "MIN_FREE_SPACE",
-    "INSTALL_HOST",
-    "INSTALL_PORT",
-    "MAX_PARALLEL_DOWNLOAD",
-    "LIMIT_DOWNLOAD_SPEED",
-    "DOWNLOAD_SPEED",
-    "MAX_CONNECTIONS_PER_DOWNLOAD",
-  );
-
-  parse_str($argv[1],$_POST);
-  
-  $SERVICE=$_POST['SERVICE'];
-  $RUNAS=$_POST['RUNAS'];
-  $INSTALLDIR=$_POST['INSTALLDIR'];
-  $CREATE_LOG=$_POST['CREATE_LOG'];
-  $LOG_DIR=$_POST['LOG_DIR'];
-  $LOG_COUNT=$_POST['LOG_COUNT'];
-  $DOWNLOAD_DIR=$_POST['DOWNLOAD_DIR'];
-  $MIN_FREE_SPACE=$_POST['MIN_FREE_SPACE'];
-  $INSTALL_HOST=$_POST['INSTALL_HOST'];
-  $INSTALL_PORT=$_POST['INSTALL_PORT'];
-  $MAX_PARALLEL_DOWNLOAD=$_POST['MAX_PARALLEL_DOWNLOAD'];
-  $LIMIT_DOWNLOAD_SPEED=$_POST['LIMIT_DOWNLOAD_SPEED'];
-  $DOWNLOAD_SPEED=$_POST['DOWNLOAD_SPEED'];
-  $MAX_CONNECTIONS_PER_DOWNLOAD=$_POST['MAX_CONNECTIONS_PER_DOWNLOAD'];
-
-  write_log("SERVICE: $SERVICE\nRUNAS: $RUNAS\nINSTALLDIR: $INSTALLDIR\nCREATE_LOG: $CREATE_LOG\nLOG_DIR: $LOG_DIR\nLOG_COUNT: $LOG_COUNT\nDOWNLOAD_DIR: $DOWNLOAD_DIR\nMIN_FREE_SPACE: $MIN_FREE_SPACE\nINSTALL_HOST: $INSTALL_HOST\nINSTALL_PORT: $INSTALL_PORT\nMAX_PARALLEL_DOWNLOAD: $MAX_PARALLEL_DOWNLOAD\nLIMIT_DOWNLOAD_SPEED: $LIMIT_DOWNLOAD_SPEED\nDOWNLOAD_SPEED: $DOWNLOAD_SPEED\nMAX_CONNECTIONS_PER_DOWNLOAD: $MAX_CONNECTIONS_PER_DOWNLOAD");
-     
-  switch ($_POST['cmd']) {
-    case 'apply':
-      if ($SERVICE == "enable") {
-        enable_pyload();
-      }
-      else
-        disable_pyload();
-      break;
-
-    default:
-    break;
-  }
-
-  if (empty($_SERVER['SHELL'])) {
-    echo("<html>");
-    echo("<head><script>var goback=parent.location;</script></head>");
-    echo("<body onLoad=\"parent.location=goback;\"></body>");
-    echo("</html>");
-  }
-  
-  $cur_dt = date("F j\, Y h:i:s A");
-  write_log("\nEnd: $cur_dt");
-  
-  function enable_pyload() {
-    global $newline, $log, $SERVICE, $RUNAS, $INSTALLDIR, $CREATE_LOG, $LOG_DIR, $LOG_COUNT, $DOWNLOAD_DIR, $MIN_FREE_SPACE, $INSTALL_HOST, $INSTALL_PORT, $MAX_PARALLEL_DOWNLOAD, $LIMIT_DOWNLOAD_SPEED, $DOWNLOAD_SPEED, $MAX_CONNECTIONS_PER_DOWNLOAD;
-    exec_log("/etc/rc.d/rc.pyload $SERVICE $RUNAS $INSTALLDIR $CREATE_LOG $LOG_DIR $LOG_COUNT $DOWNLOAD_DIR $MIN_FREE_SPACE $INSTALL_HOST $INSTALL_PORT $MAX_PARALLEL_DOWNLOAD $LIMIT_DOWNLOAD_SPEED $DOWNLOAD_SPEED $MAX_CONNECTIONS_PER_DOWNLOAD"); 
-  }  
-  
-  function disable_pyload() {
-    global $newline, $log, $SERVICE, $RUNAS, $INSTALLDIR, $CREATE_LOG, $LOG_DIR, $LOG_COUNT, $DOWNLOAD_DIR, $MIN_FREE_SPACE, $INSTALL_HOST, $INSTALL_PORT, $MAX_PARALLEL_DOWNLOAD, $LIMIT_DOWNLOAD_SPEED, $DOWNLOAD_SPEED, $MAX_CONNECTIONS_PER_DOWNLOAD;
-    exec_log("/etc/rc.d/rc.pyload $SERVICE $RUNAS $INSTALLDIR $CREATE_LOG $LOG_DIR $LOG_COUNT $DOWNLOAD_DIR $MIN_FREE_SPACE $INSTALL_HOST $INSTALL_PORT $MAX_PARALLEL_DOWNLOAD $LIMIT_DOWNLOAD_SPEED $DOWNLOAD_SPEED $MAX_CONNECTIONS_PER_DOWNLOAD"); 
-  }    
-  
-  function exec_log($cmd) {
-    $results = exec($cmd);    
-    $results = "\nCMD: $cmd \nResults: $results";
-    write_log($results);
-  }
-
-  function write_log($contents) {
-    global $logfile;
-    write_string($logfile, "$contents\n", FALSE);
-  }
-    
-  function write_string ($file, $contents, $overwrite) {
-    if (file_exists($file)) {
-      if ($overwrite)
-          unlink($file);
-          touch($file);
-    }
-    else {
-      touch($file);
-    }
-    
-    $fp = @fopen($file, 'a');
-    @flock($fp, LOCK_EX);
-    @fwrite($fp, $contents);
-    @flock($fp, LOCK_UN);
-    @fclose($fp);
-  }
-
-?>
 ]]>
 </INLINE>
 </FILE>
