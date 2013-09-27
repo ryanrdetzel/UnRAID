@@ -452,6 +452,27 @@ ssh_getver()
   fi
 }
 
+ssh_commithist()
+{
+  # use the GitHub API to retrieve the commit history for file passed as argument to this function
+  # this is done in two phases;
+  # 1. obtain the SHA hash for the most recent commit of the given file
+  # 2. construct URL which will present a consolidated list of commits from most recent to oldest for given file
+  if [ ! -z "$1" ]; then
+    LAST_SHA=$(wget --no-check-certificate -q https://api.github.com/repos/overbyrn/UnRAID/commits?path=$1 -O - | grep -Pom 1 '"sha":.*?[^\\]",' | sed 's/[\",]//g' | cut -d' ' -f2)
+    if [ ! -z "$LAST_SHA" ]; then
+      COMMIT_URL=https://github.com/overbyrn/UnRAID/commits/$LAST_SHA/$1
+      #echo "LAST_SHA = $LAST_SHA"
+      #echo "COMMIT_URL = $COMMIT_URL"
+      echo -n "$COMMIT_URL"
+    else
+      echo -n "URL could not be retrieved"
+    fi
+  else
+    echo "Error: function expects name of file to be passed as parameter"
+  fi
+}
+
 # read our configuration
 source /boot/config/plugins/ssh/ssh.cfg
 
@@ -485,8 +506,11 @@ case "$1" in
   'getver')
     ssh_getver $2 $3
     ;;  
-    *)
-    echo "usage $0 start|stop|restart|enable|disable|buttonstart|updateplg|getver"
+  'commithist')
+    ssh_commithist $2
+    ;;  
+  *)
+    echo "usage $0 start|stop|restart|enable|disable|buttonstart|updateplg|getver|commiturl [argv0]"
 esac
 ]]>
 </INLINE>
@@ -519,7 +543,7 @@ $ssh_localapp = shell_exec("/etc/rc.d/rc.ssh getver app local");
 $ssh_running = file_exists( "/var/run/sshd.pid") ? "yes" : "no";
 $controls_exist = "false";
 $updates_exist = "false";
-
+$ssh_commithist = shell_exec ( "/etc/rc.d/rc.ssh commithist openssh_overbyrn.plg" );
 //create array of users from passwd file where their UID is greater than or equal to 1000.  ie. assumed to be non-system users
 $useropts = array();
 $command = "awk -F':' '{ if($3 >= 1000) print $1 }' /etc/passwd";
@@ -571,17 +595,18 @@ $selectedsshusers  = explode(',', $ssh_cfg['USERLIST']);
         </td>
         <td>
           <?if ($ssh_remoteplg != "Unknown"):?>
-<!--
+            <?if ($ssh_commithist == "URL could not be retrieved"):?>  <!-- we didnt obtain the commit history for some reason, so just display the version -->
               <span class="green-text"><?=$ssh_remoteplg?></span>
--->              
+            <?else:?>
               <span class="green-text">
                 <?=$ssh_remoteplg?>
-                <a href="https://github.com/overbyrn/UnRAID/commits/9ad7809aead0e152e83c6e2917461071a0a0bc3d/openssh_overbyrn.plg" style="color: green; text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'" title="See GitHub Commit History" target="_blank">
+                <a href="<?=$ssh_commithist?>" style="color: green; text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'" title="See GitHub Commit History" target="_blank">
                   <span class="green">
                     <b>[Change Log]</b>
                   </span>
                 </a>
               </span>
+            <?endif;?> 
           <?else:?>
             <span class="red-text">UNKNOWN</span>
           <?endif;?>
@@ -805,9 +830,6 @@ function checkRUNNING(form) {
 onLoad();
 checkRUNNING(document.ssh_settings);
 </script>
-</body>
-</html>
-
 </body>
 </html>
 ]]>
