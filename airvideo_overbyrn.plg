@@ -3,7 +3,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY plugin "AirVideo">
 <!ENTITY author "overbyrn">
-<!ENTITY plgver "1.2a">
+<!ENTITY plgver "1.3">
 <!ENTITY pkgnam "airvideo">
 <!ENTITY pkg "/boot/packages">
 <!ENTITY plg "/boot/config/plugins/airvideo">
@@ -413,6 +413,27 @@ airvideo_getver()
   fi
 }
 
+airvideo_commithist()
+{
+  # use the GitHub API to retrieve the commit history for file passed as argument to this function
+  # this is done in two phases;
+  # 1. obtain the SHA hash for the most recent commit of the given file
+  # 2. construct URL which will present a consolidated list of commits from most recent to oldest for given file
+  if [ ! -z "$1" ]; then
+    LAST_SHA=$(wget --no-check-certificate -q https://api.github.com/repos/overbyrn/UnRAID/commits?path=$1 -O - | grep -Pom 1 '"sha":.*?[^\\]",' | sed 's/[\",]//g' | cut -d' ' -f2)
+    if [ ! -z "$LAST_SHA" ]; then
+      COMMIT_URL=https://github.com/overbyrn/UnRAID/commits/$LAST_SHA/$1
+      #echo "LAST_SHA = $LAST_SHA"
+      #echo "COMMIT_URL = $COMMIT_URL"
+      echo -n "$COMMIT_URL"
+    else
+      echo -n "URL could not be retrieved"
+    fi
+  else
+    echo "Error: function expects name of file to be passed as parameter"
+  fi
+}
+
 # read our configuration
 source /boot/config/plugins/airvideo/airvideo.cfg
 
@@ -447,8 +468,11 @@ case "$1" in
   'getver')
     airvideo_getver $2 $3
     ;;
+  'commithist')
+    airvideo_commithist $2
+    ;;  
   *)
-    echo "usage $0 start|stop|restart|enable|disable|install|buttonstart|datacheck|updateplg|getver"
+    echo "usage $0 start|stop|restart|enable|disable|install|buttonstart|datacheck|updateplg|getver|commithist <argv0>"
 esac
 ]]>
 </INLINE>
@@ -463,6 +487,7 @@ $airvideo_installed = is_dir( $airvideo_cfg['INSTALLDIR'] ) ? "yes" : "no";
 $airvideo_localplg = shell_exec("/etc/rc.d/rc.airvideo getver local");
 $airvideo_remoteplg = shell_exec("/etc/rc.d/rc.airvideo getver remote");
 $airvideo_logging = ($airvideo_cfg['LOGGING'] == "enable") ? "yes" : "no";
+$airvideo_commithist = shell_exec ( "/etc/rc.d/rc.airvideo commithist airvideo_overbyrn.plg" );
 if ($airvideo_installed=="yes") {
   $airvideo_running = file_exists( "/var/run/airvideo/airvideo.pid" ) ? "yes" : "no";
 }
@@ -524,7 +549,18 @@ $updates_exist = "false";
         </td>
         <td>
           <?if ($airvideo_remoteplg != "Unknown"):?>
+            <?if ($airvideo_commithist == "URL could not be retrieved"):?>  <!-- we didnt obtain the commit history for some reason, so just display the version -->
               <span class="green-text"><?=$airvideo_remoteplg?></span>
+            <?else:?>
+              <span class="green-text">
+                <?=$airvideo_remoteplg?>
+                <a href="<?=$airvideo_commithist?>" style="color: green; text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'" title="GitHub Commit History" target="_blank">
+                  <span class="green">
+                    <b>[Commit Log]</b>
+                  </span>
+                </a>
+              </span>
+            <?endif;?> 
           <?else:?>
             <span class="red-text">UNKNOWN</span>
           <?endif;?>
