@@ -571,7 +571,17 @@ $selectedsshusers  = explode(',', $ssh_cfg['USERLIST']);
         </td>
         <td>
           <?if ($ssh_remoteplg != "Unknown"):?>
+<!--
               <span class="green-text"><?=$ssh_remoteplg?></span>
+-->              
+              <span class="green-text">
+                <?=$ssh_remoteplg?>
+                <a href="https://github.com/overbyrn/UnRAID/commits/9ad7809aead0e152e83c6e2917461071a0a0bc3d/openssh_overbyrn.plg" style="color: green; text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'" title="See GitHub Commit History" target="_blank">
+                  <span class="green">
+                    <b>[Change Log]</b>
+                  </span>
+                </a>
+              </span>
           <?else:?>
             <span class="red-text">UNKNOWN</span>
           <?endif;?>
