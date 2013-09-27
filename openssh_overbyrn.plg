@@ -3,7 +3,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY plugin "OpenSSH">
 <!ENTITY author "overbyrn">
-<!ENTITY plgver "1.3a">
+<!ENTITY plgver "1.4">
 <!ENTITY pkg "/boot/packages">
 <!ENTITY plg "/boot/config/plugins/ssh">
 <!ENTITY img "/boot/config/plugins/images">
@@ -281,6 +281,7 @@ write_config()
       # ** IT IS CURRENTLY THE USERS RESPONSIBILITY TO PRE-GENERATE A PUBLIC/PRIVATE KEYPAIR **
       if [ -f /boot/config/plugins/ssh/$USERTEMP/.ssh/authorized_keys ]; then
         cp --preserve=timestamps -p /boot/config/plugins/ssh/$USERTEMP/.ssh/authorized_keys /home/$USERTEMP/.ssh/authorized_keys
+        chmod 700 /home/$USERTEMP/.ssh
         chmod 600 /home/$USERTEMP/.ssh/authorized_keys
         chown $USERTEMP:users /home/$USERTEMP/.ssh/authorized_keys
       else
@@ -296,6 +297,7 @@ write_config()
     [ ! -d /root/.ssh ] && mkdir /root/.ssh
     if [ -f /boot/config/plugins/ssh/root/.ssh/authorized_keys ]; then
 	  cp --preserve=timestamps -p /boot/config/plugins/ssh/root/.ssh/authorized_keys /root/.ssh/authorized_keys
+      chmod 700 /root/.ssh
       chmod 600 /root/.ssh/authorized_keys
       chown root:root /root/.ssh/authorized_keys  
 	fi  
