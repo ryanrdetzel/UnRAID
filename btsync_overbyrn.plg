@@ -525,6 +525,27 @@ btsync_getver()
   fi
 }
 
+btsync_commithist()
+{
+  # use the GitHub API to retrieve the commit history for file passed as argument to this function
+  # this is done in two phases;
+  # 1. obtain the SHA hash for the most recent commit of the given file
+  # 2. construct URL which will present a consolidated list of commits from most recent to oldest for given file
+  if [ ! -z "$1" ]; then
+    LAST_SHA=$(wget --no-check-certificate -q https://api.github.com/repos/overbyrn/UnRAID/commits?path=$1 -O - | grep -Pom 1 '"sha":.*?[^\\]",' | sed 's/[\",]//g' | cut -d' ' -f2)
+    if [ ! -z "$LAST_SHA" ]; then
+      COMMIT_URL=https://github.com/overbyrn/UnRAID/commits/$LAST_SHA/$1
+      #echo "LAST_SHA = $LAST_SHA"
+      #echo "COMMIT_URL = $COMMIT_URL"
+      echo -n "$COMMIT_URL"
+    else
+      echo -n "URL could not be retrieved"
+    fi
+  else
+    echo "Error: function expects name of file to be passed as parameter"
+  fi
+}
+
 # read our configuration
 source /boot/config/plugins/btsync/btsync.cfg
 
@@ -565,8 +586,11 @@ case "$1" in
   'getver')
     btsync_getver $2 $3
     ;;
+  'commithist')
+    btsync_commithist $2
+    ;;  
   *)
-    echo "usage $0 start|stop|restart|enable|disable|install|buttonstart|storagesize|datacheck|updateplg|getver"
+    echo "usage $0 start|stop|restart|enable|disable|install|buttonstart|storagesize|datacheck|updateplg|getver|commithist <argv0>"
 esac
 ]]>
 </INLINE>
@@ -598,7 +622,7 @@ $btsync_localplg = shell_exec("/etc/rc.d/rc.btsync getver plg local");
 $btsync_remoteplg = shell_exec("/etc/rc.d/rc.btsync getver plg remote");
 $btsync_localapp = shell_exec("/etc/rc.d/rc.btsync getver app local");
 $btsync_remoteapp = shell_exec("/etc/rc.d/rc.btsync getver app remote");
-
+$btsync_commithist = shell_exec ( "/etc/rc.d/rc.btsync commithist btsync_overbyrn.plg" );
 if ($btsync_installed=="yes") {
   $btsync_running = file_exists( "/var/run/btsync/btsync.pid" ) ? "yes" : "no";
   //$btsync_datacheck = shell_exec ( "/etc/rc.d/rc.btsync datacheck" );
@@ -693,7 +717,18 @@ $updates_exist = "false";
         </td>
         <td>
           <?if ($btsync_remoteplg != "Unknown"):?>
+            <?if ($btsync_commithist == "URL could not be retrieved"):?>  <!-- we didnt obtain the commit history for some reason, so just display the version -->
               <span class="green-text"><?=$btsync_remoteplg?></span>
+            <?else:?>
+              <span class="green-text">
+                <?=$btsync_remoteplg?>
+                <a href="<?=$btsync_commithist?>" style="color: green; text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'" title="GitHub Commit History" target="_blank">
+                  <span class="green">
+                    <b>[Commit Log]</b>
+                  </span>
+                </a>
+              </span>
+            <?endif;?> 
           <?else:?>
             <span class="red-text">UNKNOWN</span>
           <?endif;?>
