@@ -625,6 +625,27 @@ pyload_getver()
   fi
 }
 
+pyload_commithist()
+{
+  # use the GitHub API to retrieve the commit history for file passed as argument to this function
+  # this is done in two phases;
+  # 1. obtain the SHA hash for the most recent commit of the given file
+  # 2. construct URL which will present a consolidated list of commits from most recent to oldest for given file
+  if [ ! -z "$1" ]; then
+    LAST_SHA=$(wget --no-check-certificate -q https://api.github.com/repos/overbyrn/UnRAID/commits?path=$1 -O - | grep -Pom 1 '"sha":.*?[^\\]",' | sed 's/[\",]//g' | cut -d' ' -f2)
+    if [ ! -z "$LAST_SHA" ]; then
+      COMMIT_URL=https://github.com/overbyrn/UnRAID/commits/$LAST_SHA/$1
+      #echo "LAST_SHA = $LAST_SHA"
+      #echo "COMMIT_URL = $COMMIT_URL"
+      echo -n "$COMMIT_URL"
+    else
+      echo -n "URL could not be retrieved"
+    fi
+  else
+    echo "Error: function expects name of file to be passed as parameter"
+  fi
+}
+
 # read our configuration
 source /boot/config/plugins/pyload/pyload.cfg
 
@@ -662,8 +683,11 @@ case "$1" in
   'getver')
     pyload_getver $2 $3
     ;;
+  'commithist')
+    pyload_commithist $2
+    ;;  
   *)
-    echo "usage $0 start|stop|restart|enable|disable|install|buttonstart|datacheck|updateplg|getver"
+    echo "usage $0 start|stop|restart|enable|disable|install|buttonstart|datacheck|updateplg|getver|commithist <argv0>"
 esac
 ]]>
 </INLINE>
@@ -679,6 +703,7 @@ $pyload_localplg = shell_exec("/etc/rc.d/rc.pyload getver plg local");
 $pyload_remoteplg = shell_exec("/etc/rc.d/rc.pyload getver plg remote");
 $pyload_localapp = shell_exec("/etc/rc.d/rc.pyload getver app local"); 
 $pyload_remoteapp = shell_exec("/etc/rc.d/rc.pyload getver app remote");
+$pyload_commithist = shell_exec ( "/etc/rc.d/rc.pyload commithist pyload_overbyrn.plg" );
 if ($pyload_installed=="yes") {
   $pyload_running = file_exists( "/var/run/pyload/pyload.pid" ) ? "yes" : "no";
   $pyload_datacheck = shell_exec ( "/etc/rc.d/rc.pyload datacheck" );
@@ -752,7 +777,18 @@ $updates_exist = "false";
         </td>
         <td>
           <?if ($pyload_remoteplg != "Unknown"):?>
-              <span class="green-text">v<?=$pyload_remoteplg?></span>
+            <?if ($pyload_commithist == "URL could not be retrieved"):?>  <!-- we didnt obtain the commit history for some reason, so just display the version -->
+              <span class="green-text"><?=$pyload_remoteplg?></span>
+            <?else:?>
+              <span class="green-text">
+                <?=$pyload_remoteplg?>
+                <a href="<?=$pyload_commithist?>" style="color: green; text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'" title="GitHub Commit History" target="_blank">
+                  <span class="green">
+                    <b>[Commit Log]</b>
+                  </span>
+                </a>
+              </span>
+            <?endif;?> 
           <?else:?>
             <span class="red-text">UNKNOWN</span>
           <?endif;?>
