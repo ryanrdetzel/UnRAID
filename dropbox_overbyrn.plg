@@ -3,7 +3,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY plugin "Dropbox">
 <!ENTITY author "overbyrn">
-<!ENTITY plgver "1.3a">
+<!ENTITY plgver "1.3b">
 <!ENTITY pkg "/boot/packages">
 <!ENTITY plg "/boot/config/plugins/dropbox">
 <!ENTITY img "/boot/config/plugins/images">
@@ -777,7 +777,7 @@ $updates_exist = "false";
         <?$updates_exist="true"?>
       <?endif;?>
 
-      <?if (($dropbox_remoteapp != $dropbox_localapp) && ($dropbox_localapp != "Unknown") && ($dropbox_remoteapp != "Unknown")): ?>
+      <?if (($dropbox_remoteapp > $dropbox_localapp) && ($dropbox_localapp != "Unknown") && ($dropbox_remoteapp != "Unknown")): ?>
         <tr>
           <td width="30%">
           <form name="dropbox_updateapp" method="POST" action="/update.htm" target="progressFrame">
