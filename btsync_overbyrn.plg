@@ -3,7 +3,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY plugin "BTSync">
 <!ENTITY author "overbyrn">
-<!ENTITY plgver "1.7">
+<!ENTITY plgver "1.8">
 <!ENTITY pkg "/boot/packages">
 <!ENTITY plg "/boot/config/plugins/btsync">
 <!ENTITY img "/boot/config/plugins/images">
@@ -125,6 +125,13 @@ DISKLOWPRIORITY="false"
 LANENCRYPTDATA="false"
 LANUSETCP="false"
 RATELIMITLOCALPEERS="false"
+FOLDER_RESCAN_INTERVAL="600"
+MAX_FILE_SIZE_DIFF_FOR_PATCHING="1000"
+MAX_FILE_SIZE_FOR_VERSIONING="1000"
+SYNC_MAX_TIME_DIFF="600"
+SYNC_TRASH_TTL="30"
+SEND_BUF_SIZE="5"
+RECV_BUF_SIZE="5"
 </INLINE>
 </FILE>
 
@@ -141,9 +148,16 @@ RATELIMITLOCALPEERS="false"
   "download_limit" : 0,
   "upload_limit" : 0,
   "disk_low_priority" : false,
+  "folder_rescan_interval": 600,
   "lan_encrypt_data" : false,
   "lan_use_tcp" : false,
+  "max_file_size_diff_for_patching": 1000,
+  "max_file_size_for_versioning": 1000,
   "rate_limit_local_peers" : false,
+  "sync_max_time_diff": 600,
+  "sync_trash_ttl": 30,
+  "send_buf_size": 5,
+  "recv_buf_size": 5,
   "webui" :
   {
     "listen" : "0.0.0.0:50001",
@@ -183,6 +197,42 @@ if [[ $paramchk = "" ]]; then
     echo "RATELIMITLOCALPEERS=\"false\"" >> /boot/config/plugins/btsync/btsync.cfg
 fi
 
+# check for and if missing add params introduced in v1.8 of plugin
+paramchk=$(cat /boot/config/plugins/btsync/btsync.cfg | grep FOLDER_RESCAN_INTERVAL)
+if [[ $paramchk = "" ]]; then
+    echo "" >> /boot/config/plugins/btsync/btsync.cfg
+    echo "FOLDER_RESCAN_INTERVAL=\"600\"" >> /boot/config/plugins/btsync/btsync.cfg
+fi
+paramchk=$(cat /boot/config/plugins/btsync/btsync.cfg | grep MAX_FILE_SIZE_DIFF_FOR_PATCHING)
+if [[ $paramchk = "" ]]; then
+    echo "" >> /boot/config/plugins/btsync/btsync.cfg
+    echo "MAX_FILE_SIZE_DIFF_FOR_PATCHING=\"1000\"" >> /boot/config/plugins/btsync/btsync.cfg
+fi
+paramchk=$(cat /boot/config/plugins/btsync/btsync.cfg | grep MAX_FILE_SIZE_FOR_VERSIONING)
+if [[ $paramchk = "" ]]; then
+    echo "" >> /boot/config/plugins/btsync/btsync.cfg
+    echo "MAX_FILE_SIZE_FOR_VERSIONING=\"1000\"" >> /boot/config/plugins/btsync/btsync.cfg
+fi
+paramchk=$(cat /boot/config/plugins/btsync/btsync.cfg | grep SYNC_MAX_TIME_DIFF)
+if [[ $paramchk = "" ]]; then
+    echo "" >> /boot/config/plugins/btsync/btsync.cfg
+    echo "SYNC_MAX_TIME_DIFF=\"600\"" >> /boot/config/plugins/btsync/btsync.cfg
+fi
+paramchk=$(cat /boot/config/plugins/btsync/btsync.cfg | grep SYNC_TRASH_TTL)
+if [[ $paramchk = "" ]]; then
+    echo "" >> /boot/config/plugins/btsync/btsync.cfg
+    echo "SYNC_TRASH_TTL=\"30\"" >> /boot/config/plugins/btsync/btsync.cfg
+fi
+paramchk=$(cat /boot/config/plugins/btsync/btsync.cfg | grep SEND_BUF_SIZE)
+if [[ $paramchk = "" ]]; then
+    echo "" >> /boot/config/plugins/btsync/btsync.cfg
+    echo "SEND_BUF_SIZE=\"5\"" >> /boot/config/plugins/btsync/btsync.cfg
+fi
+paramchk=$(cat /boot/config/plugins/btsync/btsync.cfg | grep RECV_BUF_SIZE)
+if [[ $paramchk = "" ]]; then
+    echo "" >> /boot/config/plugins/btsync/btsync.cfg
+    echo "RECV_BUF_SIZE=\"5\"" >> /boot/config/plugins/btsync/btsync.cfg
+fi
 rm /tmp/plugin-chkcfg
 ]]>
 </INLINE>
@@ -256,7 +306,7 @@ btsync_buttonstart()
 {
   CONFIG="/boot/config/plugins/btsync/btsync.cfg"
   if [ -f $CONFIG ]; then
-    # a less greedy sed.  only replaces the first occurance of diabled with enabled.  ie. will only hit service line which is (usually) always first in cfg
+    # a less greedy sed.  only replaces the first occurance of disabled with enabled.  ie. will only hit service line which is (usually) always first in cfg
 	sed -i "0,/"disable"/s/"disable"/"enable/"" $CONFIG 2>/dev/null
     SERVICE=enable
     btsync_start
@@ -275,10 +325,19 @@ write_plugin_config()
   echo "UPNP=\"$UPNP\"" >> /boot/config/plugins/btsync/btsync.cfg
   echo "DNLIMIT=\"$DNLIMIT\"" >> /boot/config/plugins/btsync/btsync.cfg  
   echo "UPLIMIT=\"$UPLIMIT\"" >> /boot/config/plugins/btsync/btsync.cfg
+  #extra advanced params added in v1.5 of plugin
   echo "DISKLOWPRIORITY=\"$DISKLOWPRIORITY\"" >> /boot/config/plugins/btsync/btsync.cfg
   echo "LANENCRYPTDATA=\"$LANENCRYPTDATA\"" >> /boot/config/plugins/btsync/btsync.cfg
   echo "LANUSETCP=\"$LANUSETCP\"" >> /boot/config/plugins/btsync/btsync.cfg
   echo "RATELIMITLOCALPEERS=\"$RATELIMITLOCALPEERS\"" >> /boot/config/plugins/btsync/btsync.cfg
+  #extra advanced params added in v1.8 of plugin
+  echo "FOLDER_RESCAN_INTERVAL=\"$FOLDER_RESCAN_INTERVAL\"" >> /boot/config/plugins/btsync/btsync.cfg
+  echo "MAX_FILE_SIZE_DIFF_FOR_PATCHING=\"$MAX_FILE_SIZE_DIFF_FOR_PATCHING\"" >> /boot/config/plugins/btsync/btsync.cfg  
+  echo "MAX_FILE_SIZE_FOR_VERSIONING=\"$MAX_FILE_SIZE_FOR_VERSIONING\"" >> /boot/config/plugins/btsync/btsync.cfg
+  echo "SYNC_MAX_TIME_DIFF=\"$SYNC_MAX_TIME_DIFF\"" >> /boot/config/plugins/btsync/btsync.cfg
+  echo "SYNC_TRASH_TTL=\"$SYNC_TRASH_TTL\"" >> /boot/config/plugins/btsync/btsync.cfg
+  echo "SEND_BUF_SIZE=\"$SEND_BUF_SIZE\"" >> /boot/config/plugins/btsync/btsync.cfg
+  echo "RECV_BUF_SIZE=\"$RECV_BUF_SIZE\"" >> /boot/config/plugins/btsync/btsync.cfg  
 }
 
 write_btsync_config()
@@ -295,6 +354,14 @@ write_btsync_config()
   sed -i "s#.*\"lan_encrypt_data\".*#  \"lan_encrypt_data\" : $LANENCRYPTDATA,#" $INSTALLDIR/btsync.conf 2>/dev/null   
   sed -i "s#.*\"lan_use_tcp\".*#  \"lan_use_tcp\" : $LANUSETCP,#" $INSTALLDIR/btsync.conf 2>/dev/null   
   sed -i "s#.*\"rate_limit_local_peers\".*#  \"rate_limit_local_peers\" : $RATELIMITLOCALPEERS,#" $INSTALLDIR/btsync.conf 2>/dev/null   
+  
+  sed -i "s#.*\"folder_rescan_interval\".*#  \"folder_rescan_interval\" : $FOLDER_RESCAN_INTERVAL,#" $INSTALLDIR/btsync.conf 2>/dev/null   
+  sed -i "s#.*\"max_file_size_diff_for_patching\".*#  \"max_file_size_diff_for_patching\" : $MAX_FILE_SIZE_DIFF_FOR_PATCHING,#" $INSTALLDIR/btsync.conf 2>/dev/null   
+  sed -i "s#.*\"max_file_size_for_versioning\".*#  \"max_file_size_for_versioning\" : $MAX_FILE_SIZE_FOR_VERSIONING,#" $INSTALLDIR/btsync.conf 2>/dev/null   
+  sed -i "s#.*\"sync_max_time_diff\".*#  \"sync_max_time_diff\" : $SYNC_MAX_TIME_DIFF,#" $INSTALLDIR/btsync.conf 2>/dev/null   
+  sed -i "s#.*\"sync_trash_ttl\".*#  \"sync_trash_ttl\" : $SYNC_TRASH_TTL,#" $INSTALLDIR/btsync.conf 2>/dev/null   
+  sed -i "s#.*\"send_buf_size\".*#  \"send_buf_size\" : $SEND_BUF_SIZE,#" $INSTALLDIR/btsync.conf 2>/dev/null     
+  sed -i "s#.*\"recv_buf_size\".*#  \"recv_buf_size\" : $RECV_BUF_SIZE,#" $INSTALLDIR/btsync.conf 2>/dev/null     
   
   sed -i "s#.*\"listen\".*#    \"listen\" : \"0.0.0.0:$GUIPORT\",#" $INSTALLDIR/btsync.conf 2>/dev/null
   sed -i "s#.*\"login\".*#    \"login\" : \"$LOGIN\",#" $INSTALLDIR/btsync.conf 2>/dev/null
@@ -323,6 +390,13 @@ btsync_change_settings()
   LANENCRYPTDATA=${10}
   LANUSETCP=${11}
   RATELIMITLOCALPEERS=${12}
+  FOLDER_RESCAN_INTERVAL=${13}
+  MAX_FILE_SIZE_DIFF_FOR_PATCHING=${14}
+  MAX_FILE_SIZE_FOR_VERSIONING=${15}
+  SYNC_MAX_TIME_DIFF=${16}
+  SYNC_TRASH_TTL=${17}
+  SEND_BUF_SIZE=${18}
+  RECV_BUF_SIZE=${19}
 }
 
 btsync_enable()
@@ -330,7 +404,7 @@ btsync_enable()
   echo "Applying Settings ($1) ..."
   sleep 2
   SERVICE=$1 #enable
-  btsync_change_settings $2 $3 $4 $5 $6 $7 $8 $9 ${10} ${11} ${12} ${13}
+  btsync_change_settings $2 $3 $4 $5 $6 $7 $8 $9 ${10} ${11} ${12} ${13} ${14} ${15} ${16} ${16} ${17} ${19} ${20}
   write_plugin_config
   btsync_install
   btsync_restart
@@ -344,7 +418,7 @@ btsync_disable()
   sleep 2
   btsync_stop
   SERVICE=$1 #disable
-  btsync_change_settings $2 $3 $4 $5 $6 $7 $8 $9 ${10} ${11} ${12} ${13}
+  btsync_change_settings $2 $3 $4 $5 $6 $7 $8 $9 ${10} ${11} ${12} ${13} ${14} ${15} ${16} ${16} ${17} ${19} ${20}
   write_plugin_config
   echo "... OK"
   sleep 1
@@ -363,9 +437,9 @@ btsync_install()
   cp /boot/config/plugins/btsync/btsync.conf.template $INSTALLDIR/btsync.conf 2>/dev/null
 
   write_btsync_config
-  
+
   #explicitly create .sync sub-dir.  see: http://lime-technology.com/forum/index.php?topic=27542.msg270861#msg270861
-  mkdir $INSTALLDIR/.sync
+  mkdir $INSTALLDIR/.sync 2>/dev/null
   
   #update ownership and permissions on installation directory & files
   chmod -R 775 $INSTALLDIR 2>/dev/null
@@ -430,7 +504,7 @@ btsync_updateplg()
   if [ -f /boot/config/plugins/btsync_overbyrn.plg ]; then
     btsync_stop;
     echo "Downloading plugin..."
-    wget -q -P /tmp --no-check-certificate https://raw.github.com/overbyrn/UnRAID/master/btsync_overbyrn.plg 2>/dev/null
+    #wget -q -P /tmp --no-check-certificate https://raw.github.com/overbyrn/UnRAID/master/btsync_overbyrn.plg 2>/dev/null
     if [ ! -f /tmp/btsync_overbyrn.plg ]; then
       echo "Download failed, update aborted!"
       sleep 2
@@ -439,9 +513,38 @@ btsync_updateplg()
       sleep 1
       echo  "Upgrading plugin..."
       sleep 1
+      
+      #blow away the current btsync.conf.template file in /boot/config/plugins/btsync. We do this so that during the subsequent installplg of later plg file
+      #the plugin will create a fresh copy of the template file. This is needed to allow for any new parameters that may have been added in later versions of 
+      #this plugin. We also need to remove the working btsync.conf file in the users installation directory. Otherwise their conf file will not contain the
+      #newer parameters. Back-up the working conf file before doing anything else.
+      echo  "Backup $INSTALLDIR/btsync.conf to /boot/config/plugins/btsync.conf.sav ..."
+      sleep 1
+      mv -f $INSTALLDIR/btsync.conf /boot/config/plugins/btsync/btsync.conf.sav 2>/dev/null
+      rm -f /boot/config/plugins/btsync/btsync.conf.template 2>/dev/null
+      
+      echo  "Backup previous plugin version to /boot/config/plugins/btsync_overbyrn.sav ..."
+      sleep 1
       mv -f /boot/config/plugins/btsync_overbyrn.plg /boot/config/plugins/btsync/btsync_overbyrn.plg.sav 2>/dev/null
+      
+      echo  "Install new plugin version to /boot/config/plugins/btsync_overbyrn.plg ..."
+      sleep 1
       mv -f /tmp/btsync_overbyrn.plg /boot/config/plugins/btsync_overbyrn.plg 2>/dev/null
+      
+      echo  "Upgrade plugin ..."
+      sleep 1
       /usr/local/sbin/installplg /boot/config/plugins/btsync_overbyrn.plg 2>/dev/null
+      
+      #copy btsync.conf.template file to installation directory
+      echo  "Create $INSTALLDIR/btsync.conf from template conf file ..."
+      sleep 1
+      cp /boot/config/plugins/btsync/btsync.conf.template $INSTALLDIR/btsync.conf 2>/dev/null
+
+      #call write_btsync_config function which has the effect of populating btsync.conf with users own values.
+      echo  "Update template config file with user specific values ..."
+      sleep 1
+      write_btsync_config  
+      
       echo "...OK"
       sleep 1
     fi
@@ -563,10 +666,10 @@ case "$1" in
     btsync_restart
   ;;
   'enable')
-    btsync_enable $1 $2 $3 $4 $5 $6 $7 $8 $9 ${10} ${11} ${12} ${13}
+    btsync_enable $1 $2 $3 $4 $5 $6 $7 $8 $9 ${10} ${11} ${12} ${13} ${14} ${15} ${16} ${16} ${17} ${19} ${20}
   ;;
   'disable')
-	btsync_disable $1 $2 $3 $4 $5 $6 $7 $8 $9 ${10} ${11} ${12} ${13}
+	btsync_disable $1 $2 $3 $4 $5 $6 $7 $8 $9 ${10} ${11} ${12} ${13} ${14} ${15} ${16} ${16} ${17} ${19} ${20}
   ;;
   'install')
     btsync_install
@@ -936,6 +1039,37 @@ $updates_exist = "false";
           </select>
         </td>
         </tr>
+
+        
+        
+      <tr>
+        <td><a class="tooltip" href="#">Folder Rescan Interval (secs):<span class="classic">Sets a time interval for rescanning sync folders. This serves as an additional measure for detecting changes in ﬁle system.</span></a></td>
+        <td><input type="text" name="arg14" id="arg14" maxlength="60" value="<?=$btsync_cfg['FOLDER_RESCAN_INTERVAL'];?>"></td>
+      </tr>         
+      <tr>
+        <td><a class="tooltip" href="#">Max File Size Difference for Patching(MB):<span class="classic">Determines a size difference between versions of one ﬁle for patching. When it is reached or exceeded, the ﬁle will be updated by downloading missing chunks of information (patches). Updates for a ﬁle with a smaller size difference will be downloaded as separate ﬁles.</span></a></td>
+        <td><input type="text" name="arg15" id="arg15" maxlength="60" value="<?=$btsync_cfg['MAX_FILE_SIZE_DIFF_FOR_PATCHING'];?>"></td>
+      </tr>         
+      <tr>
+        <td><a class="tooltip" href="#">Max File Size for Versioning (MB):<span class="classic">Determines maximum ﬁle size for creating ﬁle versions. When this size is exceeded, versions will not be created to save space on disk.</span></a></td>
+        <td><input type="text" name="arg16" id="arg16" maxlength="60" value="<?=$btsync_cfg['MAX_FILE_SIZE_FOR_VERSIONING'];?>"></td>
+      </tr>         
+      <tr>
+        <td><a class="tooltip" href="#">Max Allowed Time Difference Between Devices (secs):<span class="classic">Shows maximum allowed time difference between devices. If the difference exceeds this limit, the devices will not be synced as it may result in incorrect tracking of ﬁle changes.</span></a></td>
+        <td><input type="text" name="arg17" id="arg17" maxlength="60" value="<?=$btsync_cfg['SYNC_MAX_TIME_DIFF'];?>"></td>
+      </tr> 
+      <tr>
+        <td><a class="tooltip" href="#">Sync Trash (days):<span class="classic">Sets the number of days after reaching which ﬁles will be automatically deleted from the .SyncArchive folder.</span></a></td>
+        <td><input type="text" name="arg18" id="arg18" maxlength="60" value="<?=$btsync_cfg['SYNC_TRASH_TTL'];?>"></td>
+      </tr> 
+      <tr>
+        <td><a class="tooltip" href="#">Send Buffer Size (MB):<span class="classic">The amount of real memory that will be used for cached send operations. This value can be set in the range from 1 to 100 MB.</span></a></td>
+        <td><input type="text" name="arg19" id="arg19" maxlength="60" value="<?=$btsync_cfg['SEND_BUF_SIZE'];?>"></td>
+      </tr> 
+      <tr>
+        <td><a class="tooltip" href="#">Receive Buffer Size (MB):<span class="classic">The amount of real memory that will be used for cached receive operations. This value can be set in the range from 1 to 100 MB.</span></a></td>
+        <td><input type="text" name="arg20" id="arg20" maxlength="60" value="<?=$btsync_cfg['RECV_BUF_SIZE'];?>"></td>
+      </tr> 
       </table>
     </div>    
     
@@ -980,7 +1114,14 @@ function validateForm() {
   document.getElementById('arg10').disabled = false;  
   document.getElementById('arg11').disabled = false;  
   document.getElementById('arg12').disabled = false;  
-  document.getElementById('arg13').disabled = false;  
+  document.getElementById('arg13').disabled = false;
+  document.getElementById('arg14').disabled = false; 
+  document.getElementById('arg15').disabled = false; 
+  document.getElementById('arg16').disabled = false; 
+  document.getElementById('arg17').disabled = false; 
+  document.getElementById('arg18').disabled = false; 
+  document.getElementById('arg19').disabled = false; 
+  document.getElementById('arg20').disabled = false;   
 }
 
 function checkRUNNING(form) {
@@ -997,6 +1138,13 @@ function checkRUNNING(form) {
     form.arg11.disabled = true;
     form.arg12.disabled = true;
     form.arg13.disabled = true;
+    form.arg14.disabled = true;
+    form.arg15.disabled = true;
+    form.arg16.disabled = true;
+    form.arg17.disabled = true;
+    form.arg18.disabled = true;
+    form.arg19.disabled = true;
+    form.arg20.disabled = true;    
   }
 }
 
