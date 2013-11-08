@@ -3,7 +3,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY plugin "BTSync">
 <!ENTITY author "overbyrn">
-<!ENTITY plgver "1.6">
+<!ENTITY plgver "1.7">
 <!ENTITY pkg "/boot/packages">
 <!ENTITY plg "/boot/config/plugins/btsync">
 <!ENTITY img "/boot/config/plugins/images">
@@ -363,6 +363,9 @@ btsync_install()
   cp /boot/config/plugins/btsync/btsync.conf.template $INSTALLDIR/btsync.conf 2>/dev/null
 
   write_btsync_config
+  
+  #explicitly create .sync sub-dir.  see: http://lime-technology.com/forum/index.php?topic=27542.msg270861#msg270861
+  mkdir $INSTALLDIR/.sync
   
   #update ownership and permissions on installation directory & files
   chmod -R 775 $INSTALLDIR 2>/dev/null
