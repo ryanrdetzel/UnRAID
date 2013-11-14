@@ -504,7 +504,7 @@ btsync_updateplg()
   if [ -f /boot/config/plugins/btsync_overbyrn.plg ]; then
     btsync_stop;
     echo "Downloading plugin..."
-    #wget -q -P /tmp --no-check-certificate https://raw.github.com/overbyrn/UnRAID/master/btsync_overbyrn.plg 2>/dev/null
+    wget -q -P /tmp --no-check-certificate https://raw.github.com/overbyrn/UnRAID/master/btsync_overbyrn.plg 2>/dev/null
     if [ ! -f /tmp/btsync_overbyrn.plg ]; then
       echo "Download failed, update aborted!"
       sleep 2
