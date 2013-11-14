@@ -3,7 +3,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY plugin "BTSync">
 <!ENTITY author "overbyrn">
-<!ENTITY plgver "1.8">
+<!ENTITY plgver "1.9">
 <!ENTITY pkg "/boot/packages">
 <!ENTITY plg "/boot/config/plugins/btsync">
 <!ENTITY img "/boot/config/plugins/images">
@@ -404,7 +404,7 @@ btsync_enable()
   echo "Applying Settings ($1) ..."
   sleep 2
   SERVICE=$1 #enable
-  btsync_change_settings $2 $3 $4 $5 $6 $7 $8 $9 ${10} ${11} ${12} ${13} ${14} ${15} ${16} ${16} ${17} ${19} ${20}
+  btsync_change_settings $2 $3 $4 $5 $6 $7 $8 $9 ${10} ${11} ${12} ${13} ${14} ${15} ${16} ${17} ${18} ${19} ${20}
   write_plugin_config
   btsync_install
   btsync_restart
@@ -666,10 +666,10 @@ case "$1" in
     btsync_restart
   ;;
   'enable')
-    btsync_enable $1 $2 $3 $4 $5 $6 $7 $8 $9 ${10} ${11} ${12} ${13} ${14} ${15} ${16} ${16} ${17} ${19} ${20}
+    btsync_enable $1 $2 $3 $4 $5 $6 $7 $8 $9 ${10} ${11} ${12} ${13} ${14} ${15} ${16} ${17} ${18} ${19} ${20}
   ;;
   'disable')
-	btsync_disable $1 $2 $3 $4 $5 $6 $7 $8 $9 ${10} ${11} ${12} ${13} ${14} ${15} ${16} ${16} ${17} ${19} ${20}
+	btsync_disable $1 $2 $3 $4 $5 $6 $7 $8 $9 ${10} ${11} ${12} ${13} ${14} ${15} ${16} ${17} ${18} ${19} ${20}
   ;;
   'install')
     btsync_install
@@ -1047,7 +1047,7 @@ $updates_exist = "false";
         <td><input type="text" name="arg14" id="arg14" maxlength="60" value="<?=$btsync_cfg['FOLDER_RESCAN_INTERVAL'];?>"></td>
       </tr>         
       <tr>
-        <td><a class="tooltip" href="#">Max File Size Difference for Patching(MB):<span class="classic">Determines a size difference between versions of one ﬁle for patching. When it is reached or exceeded, the ﬁle will be updated by downloading missing chunks of information (patches). Updates for a ﬁle with a smaller size difference will be downloaded as separate ﬁles.</span></a></td>
+        <td><a class="tooltip" href="#">Max File Size Difference for Patching (MB):<span class="classic">Determines a size difference between versions of one ﬁle for patching. When it is reached or exceeded, the ﬁle will be updated by downloading missing chunks of information (patches). Updates for a ﬁle with a smaller size difference will be downloaded as separate ﬁles.</span></a></td>
         <td><input type="text" name="arg15" id="arg15" maxlength="60" value="<?=$btsync_cfg['MAX_FILE_SIZE_DIFF_FOR_PATCHING'];?>"></td>
       </tr>         
       <tr>
