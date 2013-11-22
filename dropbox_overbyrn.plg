@@ -3,7 +3,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY plugin "Dropbox">
 <!ENTITY author "overbyrn">
-<!ENTITY plgver "1.3b">
+<!ENTITY plgver "1.3c">
 <!ENTITY pkg "/boot/packages">
 <!ENTITY plg "/boot/config/plugins/dropbox">
 <!ENTITY img "/boot/config/plugins/images">
@@ -286,12 +286,16 @@ dropbox_install()
   sleep 1
 
   #If dirs configured in plugin webgui do not exist, create them, set their permissions to rwxrwxr-x and ownership to nobody
-  [ ! -d $DROPBOXDBDIR ] && mkdir $DROPBOXDBDIR
-  chown -R nobody:users $DROPBOXDBDIR
-  chmod -R 0775 $DROPBOXDBDIR
-  [ ! -d $DROPBOXDIR ] && mkdir $DROPBOXDIR
-  chown -R nobody:users $DROPBOXDIR
-  chmod -R 0775 $DROPBOXDIR
+  if [ ! -d "$DROPBOXDBDIR" ]; then
+    mkdir $DROPBOXDBDIR
+	chown -R nobody:users $DROPBOXDBDIR
+	chmod -R 0775 $DROPBOXDBDIR
+  fi
+  if [ ! -d "$DROPBOXDIR" ]; then
+    mkdir $DROPBOXDIR
+    chown -R nobody:users $DROPBOXDIR
+    chmod -R 0775 $DROPBOXDIR
+  fi
 
   #Recreate symlinks in dropbox "home" location to real dirs set via plugin webgui and created above
   rm -f /usr/local/dropbox/.dropbox
@@ -476,13 +480,13 @@ case "$1" in
   'enable')
     #echo "p1 = $1, p2 = $2, p3 = $3, p4 = $4, p5 = $5"
 	#sleep 5
-	#eg. $1 = service state, $2 = dropbox database dir, $3 = dropbox database dir, $4 = branch, $5 = dir exclusions
+	#eg. $1 = service state, $2 = dropbox DB dir, $3 = dropbox dir, $4 = branch, $5 = dir exclusions
 	dropbox_enable $1 $2 $3 $4 $5
   ;;
   'disable')
     #echo "p1 = $1, p2 = $2, p3 = $3, p4 = $4, p5 = $5"
 	#sleep 5
-	#eg. $1 = service state, $2 = dropbox database dir, $3 = dropbox database dir, $4 = branch, $5 = dir exclusions
+	#eg. $1 = service state, $2 = dropbox DB dir, $3 = dropbox dir, $4 = branch, $5 = dir exclusions
     dropbox_disable $1 $2 $3 $4 $5
   ;;
   'install')
