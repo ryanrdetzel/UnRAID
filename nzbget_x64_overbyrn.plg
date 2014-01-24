@@ -87,19 +87,19 @@ rm -f /tmp/plugin-prepare
 <URL>-q --no-check-certificate &url2;/plugin.images/information.png</URL>
 </FILE>
 
-<FILE Name="&pkg;/libsigc++-2.2.7-i486-1gsb.txz" Run="upgradepkg --install-new">
+<FILE Name="&pkg;/libsigc++-2.2.10-x86_64-2alien.tgz" Run="upgradepkg --install-new">
 <URL>-q --no-check-certificate &url2;/packages.generic/libsigc++-2.2.10-x86_64-2alien.tgz</URL>
 </FILE>
 
-<FILE Name="&pkg;/unrar-5.0.14-i486-1cf.txz" Run="upgradepkg --install-new">
+<FILE Name="&pkg;/unrar-5.0.14-x86_64-1ponce.txz" Run="upgradepkg --install-new">
 <URL>-q --no-check-certificate &url2;/packages.generic/unrar-5.0.14-x86_64-1ponce.txz</URL>
 </FILE>
 
-<FILE Name="&pkg;/p7zip-9.20.1-i486-1alien.tgz" Run="upgradepkg --install-new">
+<FILE Name="&pkg;/p7zip-9.20.1-x86_64-1sl.txz" Run="upgradepkg --install-new">
 <URL>-q --no-check-certificate &url2;/packages.generic/p7zip-9.20.1-x86_64-1sl.txz</URL>
 </FILE>
 
-<FILE Name="&plg;/libpar2-0.2-i486-1rj.tgz" Run="upgradepkg --install-new">
+<FILE Name="&plg;/libpar2-0.2-x86_64-1rj.tgz" Run="upgradepkg --install-new">
 <URL>-q --no-check-certificate &url2;/packages.custom/libpar2-0.2-x86_64-1rj.tgz</URL>
 </FILE>
 
