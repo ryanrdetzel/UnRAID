@@ -1,0 +1,1252 @@
+<?xml version='1.0' standalone='yes'?>
+
+<!DOCTYPE PLUGIN [
+<!ENTITY plugin "BTSync">
+<!ENTITY author "overbyrn">
+<!ENTITY plgver "1.0">
+<!ENTITY pkg "/boot/packages">
+<!ENTITY plg "/boot/config/plugins/btsync">
+<!ENTITY img "/boot/config/plugins/images">
+<!ENTITY gui "/usr/local/emhttp/plugins">
+<!ENTITY ram "/usr/local/btsync">
+<!ENTITY url1 "https://raw.github.com/overbyrn/UnRAID/master">
+<!ENTITY url2 "https://dl.dropbox.com/u/572553/UnRAID">
+<!ENTITY url3 "http://btsync.s3-website-us-east-1.amazonaws.com">
+<!ENTITY dev "false"><!-- set to "true" during plugin development -->
+]>
+
+<PLUGIN>
+<!--
+Copyright 2013, Rich Manton (overbyrn)
+
+This Plugin installs and provides BTSync support for UnRAID.
+
+Plugin file locations:
+ /boot/plugins/btsync_x64_overbyrn.plg                                          # this file
+ /tmp/plugin-prepare                                                            # network readiness script
+ /tmp/plugin-chkcfg                                                             # plugin upgrade check script
+ /tmp/plugin-cleanup                                                            # deletion script
+ /tmp/plugin-install                                                            # installation script
+ 
+ /boot/config/plugins/btsync/btsync.png                                         # icon file (copied to webgui plugin dir)
+ /boot/config/plugins/images/device_status.png                                  # icon file (copied to webgui plugin dir)
+ /boot/config/plugins/images/new_config.png                                     # icon file (copied to webgui plugin dir)
+ /boot/config/plugins/images/information.png                                    # icon file (copied to webgui plugin dir)
+ 
+ /boot/config/plugins/btsync/btsync.cfg                                         # non-volatile configuration
+ /etc/rc.d/rc.btsync                                                            # plugin control script
+ /usr/local/emhttp/plugins/btsync/btsync.page                                   # page file for webGui menu system
+ /usr/local/emhttp/plugins/btsync/btsync.php                                    # webGui page code
+ /usr/local/emhttp/plugins/btsync/event/disks_mounted                           # script to execute for emhttp event
+ /usr/local/emhttp/plugins/btsync/event/unmounting_disks                        # script to execute for emhttp event
+ 
+ /var/log/plugins/btsync                                                        # created upon install success
+ /usr/local/btsync                                                              # application installation location
+ /var/run/btsync/btsync.pid                                                     # run-time pid file
+
+-->
+
+<FILE Name="/tmp/plugin-prepare" Run="/bin/bash">
+<INLINE>
+# Wait until network is ready
+timer=30
+while [ $timer -gt 0 ]; do
+  gateway=$(route -n | awk '/^0.0.0.0/ {print $2}')
+  if [ -n "$gateway" ] &amp;&amp; [ $(ping -q -n -c 1 $gateway | awk -F, '/received/ {print $2}' | awk '{print $1}') -eq 1 ]; then
+    break
+  fi
+  timer=$((timer-1))
+  sleep 1
+done
+if [ $timer -eq 0 ]; then
+  echo "No network communication !!!"
+fi
+# Remove this script
+rm -f /tmp/plugin-prepare
+</INLINE>
+</FILE>
+
+<FILE Name="&plg;/btsync.png">
+<URL>-q --no-check-certificate &url2;/plugin.images/btsync.png</URL>
+</FILE>
+
+<FILE Name="&img;/device_status.png">
+<URL>-q --no-check-certificate &url2;/plugin.images/device_status.png</URL>
+</FILE>
+
+<FILE Name="&img;/new_config.png">
+<URL>-q --no-check-certificate &url2;/plugin.images/new_config.png</URL>
+</FILE>
+
+<FILE Name="&img;/information.png">
+<URL>-q --no-check-certificate &url2;/plugin.images/information.png</URL>
+</FILE>
+
+<FILE Name="&plg;/btsync_x64.tar.gz">
+<URL>-q --no-check-certificate &url3;/btsync_x64.tar.gz</URL>
+</FILE>
+
+<FILE Name="/tmp/plugin-cleanup" Run="/bin/bash">
+<INLINE>
+# delete file but don't warn if file does not exist
+rmNoWarn() {
+  test -e $1 &amp;&amp; rm $1 2>/dev/null
+}
+
+# delete directory but don't warn if directory does not exist
+rmRecursiveNoWarn() {
+  test -e $1 &amp;&amp; rm -r $1 2>/dev/null
+}
+
+#Remove currently installed plugin files
+rmNoWarn /etc/rc.d/rc.btsync                                # control script
+rmNoWarn /var/run/btsync/btsync.pid                         # stale pid file
+rmRecursiveNoWarn /usr/local/emhttp/plugins/btsync          # btsync unraid webgui integration files
+rmNoWarn /var/log/plugins/btsync                            # record of previous plugin installation
+rmNoWarn /boot/config/plugins/btsync/btsync.conf.template   # btsync tempate config file (by deleting, ensure latest always created from below)
+
+rm /tmp/plugin-cleanup
+</INLINE>
+</FILE>
+
+<FILE Name="/boot/config/plugins/btsync/btsync.cfg">
+<INLINE>
+# btsync configuration:
+SERVICE="disable"
+INSTALLDIR="/mnt/disk1/btsync"
+GUIPORT="50001"
+LOGIN="admin"
+PASSWORD="password"
+LISTENINGPORT="0"
+UPNP="true"
+DNLIMIT="0"
+UPLIMIT="0"
+DISKLOWPRIORITY="false"
+LANENCRYPTDATA="false"
+LANUSETCP="false"
+RATELIMITLOCALPEERS="false"
+FOLDER_RESCAN_INTERVAL="600"
+MAX_FILE_SIZE_DIFF_FOR_PATCHING="1000"
+MAX_FILE_SIZE_FOR_VERSIONING="1000"
+SYNC_MAX_TIME_DIFF="600"
+SYNC_TRASH_TTL="30"
+SEND_BUF_SIZE="5"
+RECV_BUF_SIZE="5"
+</INLINE>
+</FILE>
+
+<FILE Name="/boot/config/plugins/btsync/btsync.conf.template">
+<INLINE>
+<![CDATA[
+{
+  "device_name": "<DEVICE NAME>",
+  "listening_port" : 0,
+  "storage_path" : "/mnt/disk1/btsync/.sync",
+  "pid_file" : "/var/run/btsync/btsync.pid",
+  "check_for_updates" : true,
+  "use_upnp" : true,
+  "download_limit" : 0,
+  "upload_limit" : 0,
+  "disk_low_priority" : false,
+  "folder_rescan_interval": 600,
+  "lan_encrypt_data" : false,
+  "lan_use_tcp" : false,
+  "max_file_size_diff_for_patching": 1000,
+  "max_file_size_for_versioning": 1000,
+  "rate_limit_local_peers" : false,
+  "sync_max_time_diff": 600,
+  "sync_trash_ttl": 30,
+  "send_buf_size": 5,
+  "recv_buf_size": 5,
+  "webui" :
+  {
+    "listen" : "0.0.0.0:50001",
+    "login" : "admin",
+    "password" : "password"
+  },
+  "shared_folders": []
+}
+]]>
+</INLINE>
+</FILE>
+
+<FILE Name="/tmp/plugin-chkcfg" Run="/bin/bash">
+<INLINE>
+<![CDATA[
+#!/bin/bash
+
+# check for and if missing add params introduced in v1.5 of plugin
+paramchk=$(cat /boot/config/plugins/btsync/btsync.cfg | grep DISKLOWPRIORITY)
+if [[ $paramchk = "" ]]; then
+    echo "" >> /boot/config/plugins/btsync/btsync.cfg
+    echo "DISKLOWPRIORITY=\"false\"" >> /boot/config/plugins/btsync/btsync.cfg
+fi
+paramchk=$(cat /boot/config/plugins/btsync/btsync.cfg | grep LANENCRYPTDATA)
+if [[ $paramchk = "" ]]; then
+    echo "" >> /boot/config/plugins/btsync/btsync.cfg
+    echo "LANENCRYPTDATA=\"false\"" >> /boot/config/plugins/btsync/btsync.cfg
+fi
+paramchk=$(cat /boot/config/plugins/btsync/btsync.cfg | grep LANUSETCP)
+if [[ $paramchk = "" ]]; then
+    echo "" >> /boot/config/plugins/btsync/btsync.cfg
+    echo "LANUSETCP=\"false\"" >> /boot/config/plugins/btsync/btsync.cfg
+fi
+paramchk=$(cat /boot/config/plugins/btsync/btsync.cfg | grep RATELIMITLOCALPEERS)
+if [[ $paramchk = "" ]]; then
+    echo "" >> /boot/config/plugins/btsync/btsync.cfg
+    echo "RATELIMITLOCALPEERS=\"false\"" >> /boot/config/plugins/btsync/btsync.cfg
+fi
+
+# check for and if missing add params introduced in v1.8 of plugin
+paramchk=$(cat /boot/config/plugins/btsync/btsync.cfg | grep FOLDER_RESCAN_INTERVAL)
+if [[ $paramchk = "" ]]; then
+    echo "" >> /boot/config/plugins/btsync/btsync.cfg
+    echo "FOLDER_RESCAN_INTERVAL=\"600\"" >> /boot/config/plugins/btsync/btsync.cfg
+fi
+paramchk=$(cat /boot/config/plugins/btsync/btsync.cfg | grep MAX_FILE_SIZE_DIFF_FOR_PATCHING)
+if [[ $paramchk = "" ]]; then
+    echo "" >> /boot/config/plugins/btsync/btsync.cfg
+    echo "MAX_FILE_SIZE_DIFF_FOR_PATCHING=\"1000\"" >> /boot/config/plugins/btsync/btsync.cfg
+fi
+paramchk=$(cat /boot/config/plugins/btsync/btsync.cfg | grep MAX_FILE_SIZE_FOR_VERSIONING)
+if [[ $paramchk = "" ]]; then
+    echo "" >> /boot/config/plugins/btsync/btsync.cfg
+    echo "MAX_FILE_SIZE_FOR_VERSIONING=\"1000\"" >> /boot/config/plugins/btsync/btsync.cfg
+fi
+paramchk=$(cat /boot/config/plugins/btsync/btsync.cfg | grep SYNC_MAX_TIME_DIFF)
+if [[ $paramchk = "" ]]; then
+    echo "" >> /boot/config/plugins/btsync/btsync.cfg
+    echo "SYNC_MAX_TIME_DIFF=\"600\"" >> /boot/config/plugins/btsync/btsync.cfg
+fi
+paramchk=$(cat /boot/config/plugins/btsync/btsync.cfg | grep SYNC_TRASH_TTL)
+if [[ $paramchk = "" ]]; then
+    echo "" >> /boot/config/plugins/btsync/btsync.cfg
+    echo "SYNC_TRASH_TTL=\"30\"" >> /boot/config/plugins/btsync/btsync.cfg
+fi
+paramchk=$(cat /boot/config/plugins/btsync/btsync.cfg | grep SEND_BUF_SIZE)
+if [[ $paramchk = "" ]]; then
+    echo "" >> /boot/config/plugins/btsync/btsync.cfg
+    echo "SEND_BUF_SIZE=\"5\"" >> /boot/config/plugins/btsync/btsync.cfg
+fi
+paramchk=$(cat /boot/config/plugins/btsync/btsync.cfg | grep RECV_BUF_SIZE)
+if [[ $paramchk = "" ]]; then
+    echo "" >> /boot/config/plugins/btsync/btsync.cfg
+    echo "RECV_BUF_SIZE=\"5\"" >> /boot/config/plugins/btsync/btsync.cfg
+fi
+rm /tmp/plugin-chkcfg
+]]>
+</INLINE>
+</FILE>
+
+<FILE Name="/etc/rc.d/rc.btsync" Mode="0770">
+<INLINE>
+<![CDATA[
+#!/bin/bash
+# start|stop|restart|enable|disable|install|buttonstart|storagesize|datacheck|updateplg|updateapp|getver
+
+btsync_start()
+{
+  # no-op if not enabled
+  if [ $SERVICE != "enable" ]; then
+    echo "Service is not enabled!"
+    sleep 1
+    return
+  fi
+
+  # no-op if already running
+  if [ -f /var/run/btsync/btsync.pid ]; then
+    echo "BTSync daemon already running!"
+    sleep 1
+    return
+  fi
+
+  # if not installed yet, call install function
+  if [[ ! -d "$INSTALLDIR" ]]; then
+    btsync_install
+  fi
+
+  echo "Starting BTSync..."
+  sleep 1
+
+  sudo -u nobody /usr/local/btsync/btsync --config $INSTALLDIR/btsync.conf >/dev/null 2>&1
+  
+  #PID=$(ps -ef | grep btsync | grep -v grep | awk '{print $2}');
+  #test "$PID" != "" && echo $PID > /var/run/btsync/btsync.pid
+
+  echo "... OK"
+  sleep 1
+}
+
+btsync_stop()
+{
+  # no-op if already stopped
+  if [ ! -f /var/run/btsync/btsync.pid ]; then
+    return
+  fi
+
+  echo "Stopping BTSync..."
+  sleep 1
+
+  kill $(cat /var/run/btsync/btsync.pid)
+
+  # remove copy of pid created during start
+  rm -f /var/run/btsync/btsync.pid
+
+  echo "... OK"
+  sleep 1
+}
+
+btsync_restart()
+{
+  btsync_stop
+  btsync_start
+}
+
+btsync_buttonstart()
+{
+  CONFIG="/boot/config/plugins/btsync/btsync.cfg"
+  if [ -f $CONFIG ]; then
+    # a less greedy sed.  only replaces the first occurance of disabled with enabled.  ie. will only hit service line which is (usually) always first in cfg
+	sed -i "0,/"disable"/s/"disable"/"enable/"" $CONFIG 2>/dev/null
+    SERVICE=enable
+    btsync_start
+  fi
+}
+
+write_plugin_config()
+{
+  echo "# btsync configuration:" > /boot/config/plugins/btsync/btsync.cfg
+  echo "SERVICE=\"$SERVICE\"" >> /boot/config/plugins/btsync/btsync.cfg
+  echo "GUIPORT=\"$GUIPORT\"" >> /boot/config/plugins/btsync/btsync.cfg
+  echo "LOGIN=\"$LOGIN\"" >> /boot/config/plugins/btsync/btsync.cfg
+  echo "PASSWORD=\"$PASSWORD\"" >> /boot/config/plugins/btsync/btsync.cfg
+  echo "INSTALLDIR=\"$INSTALLDIR\"" >> /boot/config/plugins/btsync/btsync.cfg
+  echo "LISTENINGPORT=\"$LISTENINGPORT\"" >> /boot/config/plugins/btsync/btsync.cfg
+  echo "UPNP=\"$UPNP\"" >> /boot/config/plugins/btsync/btsync.cfg
+  echo "DNLIMIT=\"$DNLIMIT\"" >> /boot/config/plugins/btsync/btsync.cfg  
+  echo "UPLIMIT=\"$UPLIMIT\"" >> /boot/config/plugins/btsync/btsync.cfg
+  #extra advanced params added in v1.5 of plugin
+  echo "DISKLOWPRIORITY=\"$DISKLOWPRIORITY\"" >> /boot/config/plugins/btsync/btsync.cfg
+  echo "LANENCRYPTDATA=\"$LANENCRYPTDATA\"" >> /boot/config/plugins/btsync/btsync.cfg
+  echo "LANUSETCP=\"$LANUSETCP\"" >> /boot/config/plugins/btsync/btsync.cfg
+  echo "RATELIMITLOCALPEERS=\"$RATELIMITLOCALPEERS\"" >> /boot/config/plugins/btsync/btsync.cfg
+  #extra advanced params added in v1.8 of plugin
+  echo "FOLDER_RESCAN_INTERVAL=\"$FOLDER_RESCAN_INTERVAL\"" >> /boot/config/plugins/btsync/btsync.cfg
+  echo "MAX_FILE_SIZE_DIFF_FOR_PATCHING=\"$MAX_FILE_SIZE_DIFF_FOR_PATCHING\"" >> /boot/config/plugins/btsync/btsync.cfg  
+  echo "MAX_FILE_SIZE_FOR_VERSIONING=\"$MAX_FILE_SIZE_FOR_VERSIONING\"" >> /boot/config/plugins/btsync/btsync.cfg
+  echo "SYNC_MAX_TIME_DIFF=\"$SYNC_MAX_TIME_DIFF\"" >> /boot/config/plugins/btsync/btsync.cfg
+  echo "SYNC_TRASH_TTL=\"$SYNC_TRASH_TTL\"" >> /boot/config/plugins/btsync/btsync.cfg
+  echo "SEND_BUF_SIZE=\"$SEND_BUF_SIZE\"" >> /boot/config/plugins/btsync/btsync.cfg
+  echo "RECV_BUF_SIZE=\"$RECV_BUF_SIZE\"" >> /boot/config/plugins/btsync/btsync.cfg  
+}
+
+write_btsync_config()
+{
+  #update btsync.conf with installation specific values.
+  sed -i "s#.*\"device_name\".*#  \"device_name\" : \"$(hostname -s)\",#" $INSTALLDIR/btsync.conf 2>/dev/null
+  sed -i "s#.*\"listening_port\".*#  \"listening_port\" : $LISTENINGPORT,#" $INSTALLDIR/btsync.conf 2>/dev/null
+  sed -i "s#.*\"storage_path\".*#  \"storage_path\" : \"$INSTALLDIR/.sync\",#" $INSTALLDIR/btsync.conf 2>/dev/null
+  sed -i "s#.*\"use_upnp\".*#  \"use_upnp\" : $UPNP,#" $INSTALLDIR/btsync.conf 2>/dev/null
+  sed -i "s#.*\"download_limit\".*#  \"download_limit\" : $DNLIMIT,#" $INSTALLDIR/btsync.conf 2>/dev/null
+  sed -i "s#.*\"upload_limit\".*#  \"upload_limit\" : $UPLIMIT,#" $INSTALLDIR/btsync.conf 2>/dev/null   
+
+  sed -i "s#.*\"disk_low_priority\".*#  \"disk_low_priority\" : $DISKLOWPRIORITY,#" $INSTALLDIR/btsync.conf 2>/dev/null   
+  sed -i "s#.*\"lan_encrypt_data\".*#  \"lan_encrypt_data\" : $LANENCRYPTDATA,#" $INSTALLDIR/btsync.conf 2>/dev/null   
+  sed -i "s#.*\"lan_use_tcp\".*#  \"lan_use_tcp\" : $LANUSETCP,#" $INSTALLDIR/btsync.conf 2>/dev/null   
+  sed -i "s#.*\"rate_limit_local_peers\".*#  \"rate_limit_local_peers\" : $RATELIMITLOCALPEERS,#" $INSTALLDIR/btsync.conf 2>/dev/null   
+  
+  sed -i "s#.*\"folder_rescan_interval\".*#  \"folder_rescan_interval\" : $FOLDER_RESCAN_INTERVAL,#" $INSTALLDIR/btsync.conf 2>/dev/null   
+  sed -i "s#.*\"max_file_size_diff_for_patching\".*#  \"max_file_size_diff_for_patching\" : $MAX_FILE_SIZE_DIFF_FOR_PATCHING,#" $INSTALLDIR/btsync.conf 2>/dev/null   
+  sed -i "s#.*\"max_file_size_for_versioning\".*#  \"max_file_size_for_versioning\" : $MAX_FILE_SIZE_FOR_VERSIONING,#" $INSTALLDIR/btsync.conf 2>/dev/null   
+  sed -i "s#.*\"sync_max_time_diff\".*#  \"sync_max_time_diff\" : $SYNC_MAX_TIME_DIFF,#" $INSTALLDIR/btsync.conf 2>/dev/null   
+  sed -i "s#.*\"sync_trash_ttl\".*#  \"sync_trash_ttl\" : $SYNC_TRASH_TTL,#" $INSTALLDIR/btsync.conf 2>/dev/null   
+  sed -i "s#.*\"send_buf_size\".*#  \"send_buf_size\" : $SEND_BUF_SIZE,#" $INSTALLDIR/btsync.conf 2>/dev/null     
+  sed -i "s#.*\"recv_buf_size\".*#  \"recv_buf_size\" : $RECV_BUF_SIZE,#" $INSTALLDIR/btsync.conf 2>/dev/null     
+  
+  sed -i "s#.*\"listen\".*#    \"listen\" : \"0.0.0.0:$GUIPORT\",#" $INSTALLDIR/btsync.conf 2>/dev/null
+  sed -i "s#.*\"login\".*#    \"login\" : \"$LOGIN\",#" $INSTALLDIR/btsync.conf 2>/dev/null
+  sed -i "s#.*\"password\".*#    \"password\" : \"$PASSWORD\"#" $INSTALLDIR/btsync.conf 2>/dev/null
+}
+
+btsync_change_settings()
+{
+  #nb. when passing params from enable/disable functions, params will take new numbering. ie. $2 in enable will become the first ($1) param here, and so on
+  GUIPORT="$1"
+  
+  # if we've passed -1 from unraid btsync webgui, then login field was empty.  unset login and password
+  if [ "$2" == "-1" ]; then  
+    LOGIN=""
+    PASSWORD=""
+  else
+    LOGIN="$2"
+    PASSWORD="$3"
+  fi
+  INSTALLDIR="$4"
+  LISTENINGPORT="$5"
+  UPNP="$6"
+  UPLIMIT="$7"
+  DNLIMIT="$8"
+  DISKLOWPRIORITY="$9"
+  LANENCRYPTDATA=${10}
+  LANUSETCP=${11}
+  RATELIMITLOCALPEERS=${12}
+  FOLDER_RESCAN_INTERVAL=${13}
+  MAX_FILE_SIZE_DIFF_FOR_PATCHING=${14}
+  MAX_FILE_SIZE_FOR_VERSIONING=${15}
+  SYNC_MAX_TIME_DIFF=${16}
+  SYNC_TRASH_TTL=${17}
+  SEND_BUF_SIZE=${18}
+  RECV_BUF_SIZE=${19}
+}
+
+btsync_enable()
+{
+  echo "Applying Settings ($1) ..."
+  sleep 2
+  SERVICE=$1 #enable
+  btsync_change_settings $2 $3 $4 $5 $6 $7 $8 $9 ${10} ${11} ${12} ${13} ${14} ${15} ${16} ${17} ${18} ${19} ${20}
+  write_plugin_config
+  btsync_install
+  btsync_restart
+  echo "... OK"
+  sleep 1
+}
+
+btsync_disable()
+{
+  echo "Applying Settings ($1) ..."
+  sleep 2
+  btsync_stop
+  SERVICE=$1 #disable
+  btsync_change_settings $2 $3 $4 $5 $6 $7 $8 $9 ${10} ${11} ${12} ${13} ${14} ${15} ${16} ${16} ${17} ${19} ${20}
+  write_plugin_config
+  echo "... OK"
+  sleep 1
+}
+
+btsync_install()
+{
+  echo "Configuring BTSync..."
+  sleep 1
+
+  if [ ! -d "$INSTALLDIR" ]; then
+    mkdir -m 0775 "$INSTALLDIR" 2>/dev/null
+  fi
+  
+  #copy template btsync.conf file to installation directory
+  cp /boot/config/plugins/btsync/btsync.conf.template $INSTALLDIR/btsync.conf 2>/dev/null
+
+  write_btsync_config
+
+  #explicitly create .sync sub-dir.  see: http://lime-technology.com/forum/index.php?topic=27542.msg270861#msg270861
+  mkdir $INSTALLDIR/.sync 2>/dev/null
+  
+  #update ownership and permissions on installation directory & files
+  chmod -R 775 $INSTALLDIR 2>/dev/null
+  chown -R nobody:users $INSTALLDIR 2>/dev/null
+
+  echo "... OK"
+  sleep 1
+}
+
+btsync_storagesize()
+{
+  if [ $1 ] && [ $2 ]; then
+    if [ -d $1 ]; then
+      INST=`du -sh $1 | cut -f1`
+    elif [ -f $1 ]; then
+      INST=`ls -lah $1 | awk '{ print $5}'`
+    fi
+
+    if [ -d $2 ]; then
+      DAT=`du -sh $2 | cut -f1`
+    elif [ -f $2 ]; then
+      DAT=`ls -lah $2 | awk '{ print $5}'`
+    fi
+
+    if [ $1 == $2 ]; then
+	  echo "<p>Storage memory usage: install + data directory: <span class="green-text"><b>$INST</b></span></p>"
+    else
+	  echo "<p>Storage memory usage: install directory: <span class="green-text"><b>$INST</b></span></p>"
+    fi
+  elif [ $1 ]; then
+    if [ -d $1 ]; then
+      INST=`du -sh $1 | cut -f1`
+    elif [ -f $1 ]; then
+      INST=`ls -lah $1 | awk '{ print $5}'`
+    fi
+	echo "<p>BTSync Storage Usage: <span class="green-text"><b>$INST</b></span></p>"
+  fi
+}
+
+btsync_datacheck()
+{
+  array=( ramfs proc tempfs sysfs )
+  fs=$( stat -f -c '%T' $INSTALLDIR )
+  if [ "$fs" = "msdos" ]; then
+    echo "<p style="color:red\;"><b>WARNING:</b> Your data is located on your flash drive. This can decrease the life span of your flash device!</p>"
+  else
+    for i in "${array[@]}"
+    do
+      if [ $i = $fs ]; then
+        echo "<p style="color:red\;"><b>WARNING:</b> Your data is not persistent and WILL NOT survive a reboot. Please locate data on persistent storage. eg. cache/array disk</p>"
+        break
+      else
+        echo "<p style="color:green\;">Your data will persist after a reboot</p>"
+        break
+      fi
+    done
+  fi
+}
+
+btsync_updateplg()
+{
+  if [ -f /boot/config/plugins/btsync_x64_overbyrn.plg ]; then
+    btsync_stop;
+    echo "Downloading plugin..."
+    wget -q -P /tmp --no-check-certificate https://raw.github.com/overbyrn/UnRAID/master/btsync_x64_overbyrn.plg 2>/dev/null
+    if [ ! -f /tmp/btsync_x64_overbyrn.plg ]; then
+      echo "Download failed, update aborted!"
+      sleep 2
+    else
+      echo "...OK"
+      sleep 1
+      echo  "Upgrading plugin..."
+      sleep 1
+      
+      #blow away the current btsync.conf.template file in /boot/config/plugins/btsync. We do this so that during the subsequent installplg of later plg file
+      #the plugin will create a fresh copy of the template file. This is needed to allow for any new parameters that may have been added in later versions of 
+      #this plugin. We also need to remove the working btsync.conf file in the users installation directory. Otherwise their conf file will not contain the
+      #newer parameters. Back-up the working conf file before doing anything else.
+      echo  "Backup $INSTALLDIR/btsync.conf to /boot/config/plugins/btsync.conf.sav ..."
+      sleep 1
+      mv -f $INSTALLDIR/btsync.conf /boot/config/plugins/btsync/btsync.conf.sav 2>/dev/null
+      rm -f /boot/config/plugins/btsync/btsync.conf.template 2>/dev/null
+      
+      echo  "Backup previous plugin version to /boot/config/plugins/btsync_overbyrn.sav ..."
+      sleep 1
+      mv -f /boot/config/plugins/btsync_x64_overbyrn.plg /boot/config/plugins/btsync/btsync_x64_overbyrn.plg.sav 2>/dev/null
+      
+      echo  "Install new plugin version to /boot/config/plugins/btsync_x64_overbyrn.plg ..."
+      sleep 1
+      mv -f /tmp/btsync_x64_overbyrn.plg /boot/config/plugins/btsync_x64_overbyrn.plg 2>/dev/null
+      
+      echo  "Upgrade plugin ..."
+      sleep 1
+      /usr/local/sbin/installplg /boot/config/plugins/btsync_x64_overbyrn.plg 2>/dev/null
+      
+      #copy btsync.conf.template file to installation directory
+      echo  "Create $INSTALLDIR/btsync.conf from template conf file ..."
+      sleep 1
+      cp /boot/config/plugins/btsync/btsync.conf.template $INSTALLDIR/btsync.conf 2>/dev/null
+
+      #call write_btsync_config function which has the effect of populating btsync.conf with users own values.
+      echo  "Update template config file with user specific values ..."
+      sleep 1
+      write_btsync_config  
+      
+      echo "...OK"
+      sleep 1
+    fi
+    btsync_start;
+  fi
+}
+
+btsync_updateapp()
+{
+  btsync_stop;
+  echo "Downloading Update..."
+  wget -q -P /tmp http://btsync.s3-website-us-east-1.amazonaws.com/btsync_x64.tar.gz 2>/dev/null
+  if [ ! -f /tmp/btsync_x64.tar.gz ]; then
+    echo "Download failed, update aborted!"
+    sleep 2
+  else
+    echo "...OK"
+    sleep 1
+    echo "Updating BTSync Application..."
+    sleep 1
+    tar -zxvf /tmp/btsync_x64.tar.gz -C /tmp 2>/dev/null
+    cp -f /tmp/btsync /usr/local/btsync/btsync 2>/dev/null
+    chown nobody:users /usr/local/btsync/btsync 2>/dev/null
+    chmod 775 /usr/local/btsync/btsync 2>/dev/null
+    cp -f /tmp/btsync_x64.tar.gz /boot/config/plugins/btsync 2>/dev/null   
+    echo "...OK"
+    sleep 1
+  fi
+  btsync_start;
+}
+
+btsync_plgver()
+{
+  case "$1" in
+    'local')
+      if [ -f /boot/config/plugins/btsync_x64_overbyrn.plg ]; then
+	    VERSION=$(grep "<\!ENTITY plgver" /boot/config/plugins/btsync_x64_overbyrn.plg | cut -d\" -f2)
+	  else
+	    VERSION=Unknown
+	  fi
+    ;;
+    'remote')
+      VERSION=$(wget --no-check-certificate -q https://raw.github.com/overbyrn/UnRAID/master/btsync_x64_overbyrn.plg -O - | grep "<\!ENTITY plgver" | cut -d\" -f2)
+      if [ "$VERSION" == "" ]; then
+        VERSION=Unknown
+      fi
+    ;;
+  esac
+  echo -n "$VERSION"
+}
+
+btsync_appver()
+{
+  case "$1" in
+    'local')
+      VERSION=$(/usr/local/btsync/btsync --help|awk 'NR==1{print $3}')
+	  if [ "$VERSION" == "" ]; then
+        VERSION=Unknown
+	  fi	
+    ;;
+    'remote')
+      VERSION=$(wget http://btsync.s3-website-us-east-1.amazonaws.com -q -O - | grep -i version | sed -e 's/<h3>BitTorrent Sync version //I' -e 's/<\/h3>//I')
+      if [ "$VERSION" == "" ]; then
+        VERSION=Unknown
+      fi
+    ;;
+  esac
+  echo -n "$VERSION"
+}
+
+btsync_getver()
+{
+  if [[ ! -z $1 && ! -z $2 ]]; then
+  case "$1" in
+    'plg')
+      btsync_plgver $2
+    ;;
+    'app')
+      btsync_appver $2
+    ;;    
+  esac
+  else
+    echo "usage $0 getver plg|app local|remote"
+  fi
+}
+
+btsync_commithist()
+{
+  # use the GitHub API to retrieve the commit history for file passed as argument to this function
+  # this is done in two phases;
+  # 1. obtain the SHA hash for the most recent commit of the given file
+  # 2. construct URL which will present a consolidated list of commits from most recent to oldest for given file
+  if [ ! -z "$1" ]; then
+    LAST_SHA=$(wget --no-check-certificate -q https://api.github.com/repos/overbyrn/UnRAID/commits?path=$1 -O - | grep -Pom 1 '"sha":.*?[^\\]",' | sed 's/[\",]//g' | cut -d' ' -f2)
+    if [ ! -z "$LAST_SHA" ]; then
+      COMMIT_URL=https://github.com/overbyrn/UnRAID/commits/$LAST_SHA/$1
+      #echo "LAST_SHA = $LAST_SHA"
+      #echo "COMMIT_URL = $COMMIT_URL"
+      echo -n "$COMMIT_URL"
+    else
+      echo -n "URL could not be retrieved"
+    fi
+  else
+    echo "Error: function expects name of file to be passed as parameter"
+  fi
+}
+
+# read our configuration
+source /boot/config/plugins/btsync/btsync.cfg
+
+case "$1" in
+  'start')
+    btsync_start
+  ;;
+  'stop')
+    btsync_stop
+  ;;
+  'restart')
+    btsync_restart
+  ;;
+  'enable')
+    btsync_enable $1 $2 $3 $4 $5 $6 $7 $8 $9 ${10} ${11} ${12} ${13} ${14} ${15} ${16} ${17} ${18} ${19} ${20}
+  ;;
+  'disable')
+	btsync_disable $1 $2 $3 $4 $5 $6 $7 $8 $9 ${10} ${11} ${12} ${13} ${14} ${15} ${16} ${17} ${18} ${19} ${20}
+  ;;
+  'install')
+    btsync_install
+  ;;
+  'buttonstart')
+    btsync_buttonstart
+  ;;
+  'storagesize')
+    btsync_storagesize $2
+  ;;
+  'datacheck')
+    btsync_datacheck
+  ;;
+  'updateplg')
+    btsync_updateplg
+  ;;
+  'updateapp')
+    btsync_updateapp
+  ;;
+  'getver')
+    btsync_getver $2 $3
+    ;;
+  'commithist')
+    btsync_commithist $2
+    ;;  
+  *)
+    echo "usage $0 start|stop|restart|enable|disable|install|buttonstart|storagesize|datacheck|updateplg|getver|commithist <argv0>"
+esac
+]]>
+</INLINE>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/btsync/btsync.png">
+<LOCAL>/boot/config/plugins/btsync/btsync.png</LOCAL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/btsync/device_status.png">
+<LOCAL>/boot/config/plugins/images/device_status.png</LOCAL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/btsync/new_config.png">
+<LOCAL>/boot/config/plugins/images/new_config.png</LOCAL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/btsync/information.png">
+<LOCAL>/boot/config/plugins/images/information.png</LOCAL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/btsync/btsync.php">
+<INLINE>
+<![CDATA[
+<?PHP
+$btsync_cfg = parse_ini_file( "/boot/config/plugins/btsync/btsync.cfg");
+$btsync_installed = file_exists( "/usr/local/btsync/btsync" ) ? "yes" : "no";
+$btsync_localplg = shell_exec("/etc/rc.d/rc.btsync getver plg local");
+$btsync_remoteplg = shell_exec("/etc/rc.d/rc.btsync getver plg remote");
+$btsync_localapp = shell_exec("/etc/rc.d/rc.btsync getver app local");
+$btsync_remoteapp = shell_exec("/etc/rc.d/rc.btsync getver app remote");
+$btsync_commithist = shell_exec ( "/etc/rc.d/rc.btsync commithist btsync_x64_overbyrn.plg" );
+if ($btsync_installed=="yes") {
+  $btsync_running = file_exists( "/var/run/btsync/btsync.pid" ) ? "yes" : "no";
+  //$btsync_datacheck = shell_exec ( "/etc/rc.d/rc.btsync datacheck" );
+}
+$controls_exist = "false";
+$updates_exist = "false";
+?>
+
+<html>
+  <head>
+    <style type="text/css">
+    .tooltip {
+        border-bottom: 1px dotted #000000; color: rgb(85, 85, 85);outline: none;
+        cursor: help; text-decoration: none;
+        position: relative;
+    }
+    .tooltip span {
+        margin-left: -999em;
+        position: absolute;
+    }
+    .tooltip:hover span {
+        border-radius: 5px 5px; -moz-border-radius: 5px; -webkit-border-radius: 5px; 
+        box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.1); -webkit-box-shadow: 5px 5px rgba(0, 0, 0, 0.1); -moz-box-shadow: 5px 5px rgba(0, 0, 0, 0.1);
+        font-family: Calibri, Tahoma, Geneva, sans-serif;
+        position: absolute; left: 1em; top: 2em; z-index: 99;
+        margin-left: 0; width: 250px;
+    }
+    .classic { padding: 0.8em 1em; }
+    * html a:hover { background: transparent; }
+    .classic {background: #FFFFAA; border: 1px solid #FFAD33; }
+    </style>
+  </head>
+<body>
+
+<div style="width: 49%; float:left; border: 0px solid black;">
+  <div id="title">
+    <span class="left">Status:&nbsp;<img src='/plugins/btsync/device_status.png'>
+      <?if ($btsync_installed=="yes"):?>
+        <?if ($btsync_running=="yes"):?>
+          <span class="green"><a href="http://<?=$var['NAME'];?>:<?=$btsync_cfg['GUIPORT'];?>/gui" style="color: green; text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'" title="Click here to open BTSync web page" target="_blank"><span class="green"><b>BTSync is RUNNING on port <?=$btsync_cfg['GUIPORT'];?></b></span></a></span>
+        <?else:?>
+          <span class="red"><b>NOT RUNNING</b></span>
+        <?endif;?>
+      <?else:?>
+        <span class="red"><b>NOT INSTALLED</b></span>
+      <?endif;?>
+    </span>
+  </div>
+  
+  <? if ($btsync_installed=="yes"): ?>
+    <div style="border: 0px solid black;">
+      <span class="left">
+        <?=$btsync_datacheck?>  
+      </span>
+    </div>  
+  <?endif;?>   
+       
+  <br>
+  
+  <div style="border: 0px solid black;">
+    <table>
+      <tr style="font-weight:bold; color:#333333; background:#F0F0F0; text-shadow:0 1px 1px #FFFFFF;">
+        <td>Application/Plugin</td>
+        <td>Local Version</td>		
+        <td>Online Version</td>
+      </tr>
+      <tr style="font-weight:bold; background:#FFFFFF;">
+        <td>BTSync Application</td>
+        <td>
+          <?if ($btsync_localapp != "Unknown"):?>
+            <span class="green-text"><?=$btsync_localapp?></span>
+          <?else:?>
+            <span class="red-text">UNKNOWN</span>
+          <?endif;?>
+        </td>
+        <td>
+          <?if ($btsync_remoteapp != "Unknown"):?>
+            <span class="green-text"><?=$btsync_remoteapp?></span>
+          <?else:?>
+            <span class="red-text">UNKNOWN</span>
+          <?endif;?>
+        </td>
+      </tr>
+      <tr style="font-weight:bold; background:#FFFFFF;">
+        <td>BTSync Plugin</td>
+        <td>
+          <?if ($btsync_localplg != "Unknown"):?>
+              <span class="green-text"><?=$btsync_localplg?></span>
+          <?else:?>
+            <span class="red-text">UNKNOWN</span>
+          <?endif;?>
+        </td>
+        <td>
+          <?if ($btsync_remoteplg != "Unknown"):?>
+            <?if ($btsync_commithist == "URL could not be retrieved"):?>  <!-- we didnt obtain the commit history for some reason, so just display the version -->
+              <span class="green-text"><?=$btsync_remoteplg?></span>
+            <?else:?>
+              <span class="green-text">
+                <?=$btsync_remoteplg?>
+                <a href="<?=$btsync_commithist?>" style="color: green; text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'" title="GitHub Commit History" target="_blank">
+                  <span class="green">
+                    <b>[Commit Log]</b>
+                  </span>
+                </a>
+              </span>
+            <?endif;?> 
+          <?else:?>
+            <span class="red-text">UNKNOWN</span>
+          <?endif;?>
+        </td>
+      </tr>          
+    </table>
+  </div>  
+
+  <br></br>
+
+  <div>
+    <table>
+      <tr style="font-weight:bold; color:#333333; background:#F0F0F0; text-shadow:0 1px 1px #FFFFFF;">
+        <td colspan="2">Control</td>
+      </tr>    
+      <?if ($btsync_installed=="yes"):?>
+        <?if ($btsync_running=="yes"):?>
+          <tr>
+          <td width="30%">
+            <form name="btsync_start_stop" method="POST" action="/update.htm" target="progressFrame">
+              <input type="hidden" name="cmd" value="/etc/rc.d/rc.btsync stop">
+              <input type="submit" name="runCmd" value="Stop">
+            </form>      
+          </td>
+          <td>Stop BTSync Daemon</td>
+          </tr>
+          <tr>
+          <td width="30%">
+          <form name="btsync_restart" method="POST" action="/update.htm" target="progressFrame">
+            <input type="hidden" name="cmd" value="/etc/rc.d/rc.btsync restart">
+            <input type="submit" name="runCmd" value="Restart">
+          </form>  
+          </td>
+          <td>Restart BTSync Daemon</td>
+          </tr>
+          <?$controls_exist = "true"?>
+        <?else:?>
+          <tr>
+          <td width="30%">
+            <form name="btsync_start" method="POST" action="/update.htm" target="progressFrame">
+              <input type="hidden" name="cmd" value="/etc/rc.d/rc.btsync buttonstart">
+              <input type="submit" name="runCmd" value="Start">
+            </form>
+          </td>
+          <td>Start BTSync Daemon</td>
+          </tr>
+          <?$controls_exist = "true"?>
+        <?endif;?>
+      <?else:?>
+        <tr>
+        <td width="30%">
+        <form name="btsync_install" method="POST" action="/update.htm" target="progressFrame">
+          <input type="hidden" name="cmd" value="/etc/rc.d/rc.btsync install">
+          <input type="submit" name="runCmd" value="Install">
+        </form>
+        </td>
+        <td>Install BTSync Application</td>
+        </tr>
+        <?$controls_exist = "true"?>      
+      <?endif;?>
+      
+      <?if ($controls_exist=="false"):?>
+        <tr>
+          <td colspan="2" align="center">No Control Actions available</td>
+        </tr>
+      <?endif;?>
+    </table>
+  </div>  
+  <br></br> 
+  <div style="border: 0px solid black;">
+    <table>
+      <tr style="font-weight:bold; color:#333333; background:#F0F0F0; text-shadow:0 1px 1px #FFFFFF;">
+        <td colspan="2">Updates</td>
+      </tr>
+      <?if (($btsync_remoteplg != $btsync_localplg) && ($btsync_localplg != "Unknown") && ($btsync_remoteplg != "Unknown")): ?>
+        <tr>
+        <td width="30%">
+          <form name="btsync_updateplg" method="POST" action="/update.htm" target="progressFrame">
+            <input type="hidden" name="cmd" value="/etc/rc.d/rc.btsync updateplg">
+            <input type="submit" name="runCmd" value="Update Plugin">
+          </form>
+        </td>
+          <td><span class="red-text">An update is available to the plugin</span></td>
+        </tr>
+        <?$updates_exist="true"?>
+      <?endif;?>
+
+      <?if (($btsync_remoteapp != $btsync_localapp) && ($btsync_localapp != "Unknown") && ($btsync_remoteapp != "Unknown")): ?>
+        <tr>
+          <td width="30%">
+          <form name="btsync_updateapp" method="POST" action="/update.htm" target="progressFrame">
+            <input type="hidden" name="cmd" value="/etc/rc.d/rc.btsync updateapp">
+            <input type="submit" name="runCmd" value="Update BTSync">
+          </form>
+          </td>
+          <td><span class="red-text">An update is available to BTSync</span></td>
+        </tr>
+        <?$updates_exist="true"?>
+      <?endif;?>
+      <?if ($updates_exist=="false"):?>
+        <tr>
+          <td colspan="2" align="center">No updates available at this time</td>
+        </tr>
+      <?endif;?>
+    </table>
+  </div>
+  <br></br>
+  <br></br>
+</div>
+
+<div style="width: 49%; float:right; border: 0px solid black;">
+  <div id="title">
+    <span class="left">Configuration:&nbsp;<img src='/plugins/btsync/new_config.png'></span>
+  </div>
+  <form name="btsync_settings" method="POST" action="/update.htm" target="progressFrame" onsubmit="validateForm();">
+    <input type="hidden" name="cmd" value="/etc/rc.d/rc.btsync">
+    <table class="settings">
+      <tr>
+        <td>Enable BTSync Service:</td>
+        <td>
+          <select name="arg1" id="arg1" size="1">
+            <?=mk_option($btsync_cfg['SERVICE'], "disable", "No");?>
+            <?=mk_option($btsync_cfg['SERVICE'], "enable", "Yes");?>
+          </select>
+        </td>
+      </tr>
+      <tr>
+        <td>BTSync WebUI Port:</td>
+        <td><input type="text" name="arg2" id="arg2" maxlength="60" value="<?=$btsync_cfg['GUIPORT'];?>"></td>
+      </tr>
+      <tr>
+        <td>BTSync WebUI Login:</td>
+        <td><input type="text" name="arg3" id="arg3" maxlength="60" title="If left blank, no username or password is required to access BTSync WebUI" value="<?=$btsync_cfg['LOGIN'];?>"></td>
+      </tr>
+      <tr>
+        <td>BTSync WebUI Password:</td>
+        <td><input type="text" name="arg4" id="arg4" maxlength="60" value="<?=$btsync_cfg['PASSWORD'];?>"></td>
+      </tr>
+      <tr>
+        <td>BTSync Location:</td>
+        <td><input type="text" name="arg5" id="arg5" maxlength="60" value="<?=$btsync_cfg['INSTALLDIR'];?>"></td>
+      </tr>
+      <tr>
+        <td>BTSync Listening Port:</td>
+        <td><input type="text" name="arg6" id="arg6" maxlength="60" value="<?=$btsync_cfg['LISTENINGPORT'];?>"></td>
+      </tr>
+      <tr>
+        <td>BTSync Use UPNP:</td>
+        <td>
+          <select name="arg7" id="arg7" size="1">
+          <?=mk_option($btsync_cfg['UPNP'], "false", "No");?>
+          <?=mk_option($btsync_cfg['UPNP'], "true", "Yes");?>
+          </select>
+        </td>
+      </tr>      
+      <tr>
+        <td>BTSync Upload Limit (kB/s):</td>
+        <td><input type="text" name="arg8" id="arg8" maxlength="60" value="<?=$btsync_cfg['UPLIMIT'];?>"></td>
+      </tr>
+      <tr>
+        <td>BTSync Download Limit (kB/s):</td>
+        <td><input type="text" name="arg9" id="arg9" maxlength="60" value="<?=$btsync_cfg['DNLIMIT'];?>"></td>
+      </tr> 
+    </table>
+
+    <div id="advconf_div" style="display: none;">
+        </br>
+        <table class="settings">
+        <tr>
+        <td><a class="tooltip" href="#">Disk Low Priority:<span class="classic">Sets priority for the file operations on disk. If disabled, BTSync will perform read and write file operations with the highest speed and priority which can result in degradation of performance for other applications.</span></a></td>
+        <td>
+          <select name="arg10" id="arg10" size="1">
+          <?=mk_option($btsync_cfg['DISKLOWPRIORITY'], "false", "No");?>
+          <?=mk_option($btsync_cfg['DISKLOWPRIORITY'], "true", "Yes");?>
+          </select>
+        </td>
+        </tr> 
+        <tr>
+        <td><a class="tooltip" href="#">Lan Encrypt Data:<span class="classic">If enabled, BTSync will use encryption in the local network.</span></a></td>
+        <td>
+          <select name="arg11" id="arg11" size="1">
+          <?=mk_option($btsync_cfg['LANENCRYPTDATA'], "false", "No");?>
+          <?=mk_option($btsync_cfg['LANENCRYPTDATA'], "true", "Yes");?>
+          </select>
+        </td>
+        </tr> 
+        <tr>
+        <td><a class="tooltip" href="#">Lan Use TCP:<span class="classic">If enabled, BTSync will use TCP instead of UDP in local network.</span></a></td>
+        <td>
+          <select name="arg12" id="arg12" size="1">
+          <?=mk_option($btsync_cfg['LANUSETCP'], "false", "No");?>
+          <?=mk_option($btsync_cfg['LANUSETCP'], "true", "Yes");?>
+          </select>
+        </td>
+        </tr> 
+        <tr>
+        <td><a class="tooltip" href="#">Rate Limit Local Peers:<span class="classic">Applies speed limits to the peers in local network. By default the limits are not applied in LAN.</span></a></td>
+        <td>
+          <select name="arg13" id="arg13" size="1">
+          <?=mk_option($btsync_cfg['RATELIMITLOCALPEERS'], "false", "No");?>
+          <?=mk_option($btsync_cfg['RATELIMITLOCALPEERS'], "true", "Yes");?>
+          </select>
+        </td>
+        </tr>
+
+        
+        
+      <tr>
+        <td><a class="tooltip" href="#">Folder Rescan Interval (secs):<span class="classic">Sets a time interval for rescanning sync folders. This serves as an additional measure for detecting changes in ﬁle system.</span></a></td>
+        <td><input type="text" name="arg14" id="arg14" maxlength="60" value="<?=$btsync_cfg['FOLDER_RESCAN_INTERVAL'];?>"></td>
+      </tr>         
+      <tr>
+        <td><a class="tooltip" href="#">Max File Size Difference for Patching (MB):<span class="classic">Determines a size difference between versions of one ﬁle for patching. When it is reached or exceeded, the ﬁle will be updated by downloading missing chunks of information (patches). Updates for a ﬁle with a smaller size difference will be downloaded as separate ﬁles.</span></a></td>
+        <td><input type="text" name="arg15" id="arg15" maxlength="60" value="<?=$btsync_cfg['MAX_FILE_SIZE_DIFF_FOR_PATCHING'];?>"></td>
+      </tr>         
+      <tr>
+        <td><a class="tooltip" href="#">Max File Size for Versioning (MB):<span class="classic">Determines maximum ﬁle size for creating ﬁle versions. When this size is exceeded, versions will not be created to save space on disk.</span></a></td>
+        <td><input type="text" name="arg16" id="arg16" maxlength="60" value="<?=$btsync_cfg['MAX_FILE_SIZE_FOR_VERSIONING'];?>"></td>
+      </tr>         
+      <tr>
+        <td><a class="tooltip" href="#">Max Allowed Time Difference Between Devices (secs):<span class="classic">Shows maximum allowed time difference between devices. If the difference exceeds this limit, the devices will not be synced as it may result in incorrect tracking of ﬁle changes.</span></a></td>
+        <td><input type="text" name="arg17" id="arg17" maxlength="60" value="<?=$btsync_cfg['SYNC_MAX_TIME_DIFF'];?>"></td>
+      </tr> 
+      <tr>
+        <td><a class="tooltip" href="#">Sync Trash (days):<span class="classic">Sets the number of days after reaching which ﬁles will be automatically deleted from the .SyncArchive folder.</span></a></td>
+        <td><input type="text" name="arg18" id="arg18" maxlength="60" value="<?=$btsync_cfg['SYNC_TRASH_TTL'];?>"></td>
+      </tr> 
+      <tr>
+        <td><a class="tooltip" href="#">Send Buffer Size (MB):<span class="classic">The amount of real memory that will be used for cached send operations. This value can be set in the range from 1 to 100 MB.</span></a></td>
+        <td><input type="text" name="arg19" id="arg19" maxlength="60" value="<?=$btsync_cfg['SEND_BUF_SIZE'];?>"></td>
+      </tr> 
+      <tr>
+        <td><a class="tooltip" href="#">Receive Buffer Size (MB):<span class="classic">The amount of real memory that will be used for cached receive operations. This value can be set in the range from 1 to 100 MB.</span></a></td>
+        <td><input type="text" name="arg20" id="arg20" maxlength="60" value="<?=$btsync_cfg['RECV_BUF_SIZE'];?>"></td>
+      </tr> 
+      </table>
+    </div>    
+    
+    <div align="center">
+      <hr size="3" align="center" width="75%" color="grey" style="margin-top:20px;margin-bottom:18px">
+      <input type="button" value="Show Advanced Settings" id="advconf_btn" onclick="toggle_adv_settings(this);"></input>
+      <input type="submit" name="runCmd" value="Apply"><button type="button" onClick="done();">Done</button>
+    </div>
+   
+  </form>
+  <br><br>
+  <br><br>
+</div>
+
+<script type="text/javascript">
+
+function toggle_adv_settings(button) {
+  if (document.getElementById('advconf_div').style.display == 'block' || document.getElementById('advconf_div').style.display == '') {
+    document.getElementById('advconf_div').style.display = 'none';
+  }
+  else {
+    document.getElementById('advconf_div').style.display = 'block'
+  }
+  button.value=(button.value=="Show Advanced Settings")?"Hide Advanced Settings":"Show Advanced Settings";
+}
+
+function validateForm() {
+  if (document.getElementById('arg3').value == "") {
+    document.getElementById('arg3').value = "-1"
+  }
+  if (document.getElementById('arg4').value == "") {
+    document.getElementById('arg4').value = "-1"
+  }
+  document.getElementById('arg2').disabled = false;
+  document.getElementById('arg3').disabled = false;
+  document.getElementById('arg4').disabled = false;
+  document.getElementById('arg5').disabled = false;
+  document.getElementById('arg6').disabled = false;
+  document.getElementById('arg7').disabled = false;  
+  document.getElementById('arg8').disabled = false;  
+  document.getElementById('arg9').disabled = false;  
+  document.getElementById('arg10').disabled = false;  
+  document.getElementById('arg11').disabled = false;  
+  document.getElementById('arg12').disabled = false;  
+  document.getElementById('arg13').disabled = false;
+  document.getElementById('arg14').disabled = false; 
+  document.getElementById('arg15').disabled = false; 
+  document.getElementById('arg16').disabled = false; 
+  document.getElementById('arg17').disabled = false; 
+  document.getElementById('arg18').disabled = false; 
+  document.getElementById('arg19').disabled = false; 
+  document.getElementById('arg20').disabled = false;   
+}
+
+function checkRUNNING(form) {
+  if ("<?=$btsync_running;?>" == "yes") {
+    form.arg2.disabled = true;
+    form.arg3.disabled = true;
+    form.arg4.disabled = true;
+    form.arg5.disabled = true;
+    form.arg6.disabled = true;
+    form.arg7.disabled = true;
+    form.arg8.disabled = true;
+    form.arg9.disabled = true;
+    form.arg10.disabled = true;
+    form.arg11.disabled = true;
+    form.arg12.disabled = true;
+    form.arg13.disabled = true;
+    form.arg14.disabled = true;
+    form.arg15.disabled = true;
+    form.arg16.disabled = true;
+    form.arg17.disabled = true;
+    form.arg18.disabled = true;
+    form.arg19.disabled = true;
+    form.arg20.disabled = true;    
+  }
+}
+
+checkRUNNING(document.btsync_settings);
+</script>
+
+</body>
+</html>
+]]>
+</INLINE>
+</FILE>
+
+<!-- event handler -->
+<FILE Name="/usr/local/emhttp/plugins/btsync/event/disks_mounted" Mode="0770">
+<INLINE>
+#!/bin/bash
+#load plugin config
+source /boot/config/plugins/btsync/btsync.cfg
+#Start btsync if enabled
+[ $SERVICE = "enable" ] &amp;&amp; /etc/rc.d/rc.btsync start
+</INLINE>
+</FILE>
+
+<!-- event handler -->
+<FILE Name="/usr/local/emhttp/plugins/btsync/event/unmounting_disks" Mode="0770">
+<INLINE>
+#!/bin/bash
+/etc/rc.d/rc.btsync stop
+</INLINE>
+</FILE>
+
+<FILE Name="/tmp/plugin-install" Run="/bin/bash">
+<INLINE>
+#load plugin config
+source /boot/config/plugins/btsync/btsync.cfg
+
+# install btsync
+cd /tmp
+
+# copy and untar application binary
+cp &plg;/btsync_x64.tar.gz /tmp 2>/dev/null
+tar -zxvf btsync_x64.tar.gz 2>/dev/null
+
+# copy btsync and config file to non-persistent app dir
+mkdir /usr/local/btsync 2>/dev/null
+mv /tmp/btsync &ram;/btsync 2>/dev/null
+
+#set ownership and permission of btsync to nobody
+echo "Setting ownership/perms of btsync..."
+chown -R nobody:users &ram; 2>/dev/null
+chmod -R 775 &ram; 2>/dev/null
+
+# tidy tmp
+rm -f btsync_x64.tar.gz 2>/dev/null
+rm -f LICENSE.TXT
+
+# create btsync-writable directory for pid file
+echo "Creating writable PID dir..."
+[ ! -e /var/run/btsync ] &amp;&amp; mkdir -m 0777 /var/run/btsync
+
+rm /tmp/plugin-install
+</INLINE>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/btsync/btsync.page">
+<INLINE>
+Menu="NetworkServices"
+Icon="btsync.png"
+Version="&plgver;"
+Author="&author;"
+Type="php"
+Title="&plugin;"
+</INLINE>
+</FILE>
+
+<FILE Name="/var/log/plugins/btsync">
+<INLINE>
+&plugin; v&plgver;
+</INLINE>
+</FILE>
+
+<FILE Name="/tmp/plugin-development" Run="/bin/bash">
+<INLINE>
+if [ "&dev;" == "true" ]; then
+  if [ -f /boot/config/plugins/btsync.php ]; then
+    rm -f &gui;/btsync/btsync.php
+    ln -s /boot/config/plugins/btsync.php &gui;/btsync/btsync.php
+  else
+    mv &gui;/btsync/btsync.php /boot/config/plugins/btsync.php
+    ln -s /boot/config/plugins/btsync.php &gui;/btsync/btsync.php
+  fi
+  if [ -f /boot/config/plugins/rc.btsync ]; then
+    rm -f /etc/rc.d/rc.btsync
+    ln -s /boot/config/plugins/rc.btsync /etc/rc.d/rc.btsync
+  else
+    mv /etc/rc.d/rc.btsync /boot/config/plugins/rc.btsync
+    ln -s /boot/config/plugins/rc.btsync /etc/rc.d/rc.btsync
+  fi
+fi
+
+rm /tmp/plugin-development
+</INLINE>
+</FILE>
+
+</PLUGIN>
