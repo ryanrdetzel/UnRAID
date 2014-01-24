@@ -580,7 +580,7 @@ shell_exec("/etc/rc.d/rc.dropbox chk4symlinks");
 
 $status = exec( "sudo -u nobody HOME=/usr/local/dropbox /usr/local/sbin/dropbox.py status" );
 switch ($status) {
-  case "Waiting to be linked to an account...":
+  case "Waiting to be linked to a Dropbox account...":
     $actlink = exec( "sudo -u nobody HOME=/usr/local/dropbox /usr/local/sbin/dropbox.py start" );
     break;
   case "Dropbox isn't running!":
