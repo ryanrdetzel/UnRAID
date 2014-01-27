@@ -3,7 +3,8 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY plugin "NZBget">
 <!ENTITY author "overbyrn">
-<!ENTITY plgver "1.0">
+<!ENTITY plgver "1.1">
+<!ENTITY pkgnam "nzbget.x64">
 <!ENTITY pkg "/boot/packages">
 <!ENTITY plg "/boot/config/plugins/nzbget">
 <!ENTITY img "/boot/config/plugins/images">
@@ -31,7 +32,7 @@ Plugin file locations:
  
  /boot/packages/libsigc++-2.2.10-x86_64-2alien.tgz                              # package dependency (par-check & repair)
  /boot/packages/unrar-5.0.14-x86_64-1ponce.txz                                  # package dependency (rar support)
- /boot/packages/p7zip-9.20.1-i486-1alien.tgz                                    # package dependency (7zip support)
+ /boot/packages/p7zip-9.20.1-x86_64-1sl.txz                                     # package dependency (7zip support)
 
  /boot/config/plugins/nzbget/nzbget.png                                         # icon file (copied to webgui plugin dir)
  /boot/config/plugins/images/device_status.png                                  # icon file (copied to webgui plugin dir)
@@ -88,19 +89,19 @@ rm -f /tmp/plugin-prepare
 </FILE>
 
 <FILE Name="&pkg;/libsigc++-2.2.10-x86_64-2alien.tgz" Run="upgradepkg --install-new">
-<URL>-q --no-check-certificate &url2;/packages.generic/libsigc++-2.2.10-x86_64-2alien.tgz</URL>
+<URL>-q --no-check-certificate &url2;/packages/&pkgnam;/libsigc++-2.2.10-x86_64-2alien.tgz</URL>
 </FILE>
 
 <FILE Name="&pkg;/unrar-5.0.14-x86_64-1ponce.txz" Run="upgradepkg --install-new">
-<URL>-q --no-check-certificate &url2;/packages.generic/unrar-5.0.14-x86_64-1ponce.txz</URL>
+<URL>-q --no-check-certificate &url2;/packages/&pkgnam;/unrar-5.0.14-x86_64-1ponce.txz</URL>
 </FILE>
 
 <FILE Name="&pkg;/p7zip-9.20.1-x86_64-1sl.txz" Run="upgradepkg --install-new">
-<URL>-q --no-check-certificate &url2;/packages.generic/p7zip-9.20.1-x86_64-1sl.txz</URL>
+<URL>-q --no-check-certificate &url2;/packages/&pkgnam;/p7zip-9.20.1-x86_64-1sl.txz</URL>
 </FILE>
 
 <FILE Name="&plg;/libpar2-0.2-x86_64-1rj.tgz" Run="upgradepkg --install-new">
-<URL>-q --no-check-certificate &url2;/packages.custom/libpar2-0.2-x86_64-1rj.tgz</URL>
+<URL>-q --no-check-certificate &url2;/packages/&pkgnam;/libpar2-0.2-x86_64-1rj.tgz</URL>
 </FILE>
 
 <FILE Name="/tmp/plugin-cleanup" Run="/bin/bash">
@@ -398,7 +399,7 @@ nzbget_updateapp()
   nzbget_stop;
   echo "Downloading Update..."
   REMPKG=$(wget --no-check-certificate https://dl.dropbox.com/u/572553/UnRAID/plugin.version.control/nzbget_x64_appver.txt -q -O - | grep -i $BRANCH | cut -d: -f3)
-  wget -q -P /tmp --no-check-certificate https://dl.dropbox.com/u/572553/UnRAID/packages.custom/$REMPKG 2>/dev/null
+  wget -q -P /tmp --no-check-certificate https://dl.dropbox.com/u/572553/UnRAID/packages/nzbget.x64/$REMPKG 2>/dev/null
   if [ ! -f /tmp/$REMPKG ]; then
     echo "Download failed, update aborted!"
     sleep 2
@@ -881,7 +882,7 @@ REMPKG=$(wget --no-check-certificate https://dl.dropbox.com/u/572553/UnRAID/plug
 echo "Looking for locally saved version of $REMPKG"
 if [[ ! -e &plg;/$REMPKG ]]; then
   echo "Local saved version does not exist, downloading $REMPKG to /tmp"
-  wget -q -P /tmp --no-check-certificate https://dl.dropbox.com/u/572553/UnRAID/packages.custom/$REMPKG 2>/dev/null
+  wget -q -P /tmp --no-check-certificate https://dl.dropbox.com/u/572553/UnRAID/packages/nzbget.x64/$REMPKG 2>/dev/null
   echo "Installing package /tmp/$REMPKG..."
   upgradepkg --install-new nzbget*%/tmp/$REMPKG
   echo "Deleting any old builds which may be at &plg;..."
