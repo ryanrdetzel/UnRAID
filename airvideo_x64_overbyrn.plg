@@ -3,7 +3,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY plugin "AirVideo">
 <!ENTITY author "overbyrn">
-<!ENTITY plgver "1.3">
+<!ENTITY plgver "1.0">
 <!ENTITY pkgnam "airvideo.x64">
 <!ENTITY pkg "/boot/packages">
 <!ENTITY plg "/boot/config/plugins/airvideo">
