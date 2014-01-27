@@ -3,7 +3,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY plugin "AirVideo">
 <!ENTITY author "overbyrn">
-<!ENTITY plgver "1.3">
+<!ENTITY plgver "1.4">
 <!ENTITY pkgnam "airvideo">
 <!ENTITY pkg "/boot/packages">
 <!ENTITY plg "/boot/config/plugins/airvideo">
@@ -100,35 +100,35 @@ rm -f /tmp/plugin-prepare
 </FILE>
 
 <FILE Name="&pkg;/mpeg4ip-1.5.0.1-i486-1ahl.tgz" Run="upgradepkg --install-new">
-<URL>-q --no-check-certificate &url2;/packages.generic/mpeg4ip-1.5.0.1-i486-1ahl.tgz</URL>
+<URL>-q --no-check-certificate &url2;/packages/&pkgnam;/mpeg4ip-1.5.0.1-i486-1ahl.tgz</URL>
 </FILE>
 
 <FILE Name="&pkg;/libmp4v2-1.9.1-i486-3_cngu.tgz" Run="upgradepkg --install-new">
-<URL>-q --no-check-certificate &url2;/packages.generic/libmp4v2-1.9.1-i486-3_cngu.tgz</URL>
+<URL>-q --no-check-certificate &url2;/packages/&pkgnam;/libmp4v2-1.9.1-i486-3_cngu.tgz</URL>
 </FILE>
 
 <FILE Name="&pkg;/lame-3.99-i486-1sl.txz" Run="upgradepkg --install-new">
-<URL>-q --no-check-certificate &url2;/packages.generic/lame-3.99-i486-1sl.txz</URL>
+<URL>-q --no-check-certificate &url2;/packages/&pkgnam;/lame-3.99-i486-1sl.txz</URL>
 </FILE>
 
 <FILE Name="&pkg;/alsa-lib-1.0.25-i486-1.txz" Run="upgradepkg --install-new">
-<URL>-q --no-check-certificate &url2;/packages.generic/alsa-lib-1.0.25-i486-1.txz</URL>
+<URL>-q --no-check-certificate &url2;/packages/&pkgnam;/alsa-lib-1.0.25-i486-1.txz</URL>
 </FILE>
 
 <FILE Name="&pkg;/faac-1.28-i486-5sl.txz" Run="upgradepkg --install-new">
-<URL>-q --no-check-certificate &url2;/packages.generic/faac-1.28-i486-5sl.txz</URL>
+<URL>-q --no-check-certificate &url2;/packages/&pkgnam;/faac-1.28-i486-5sl.txz</URL>
 </FILE>
 
 <FILE Name="&pkg;/jre-7u2-i586.txz" Run="upgradepkg --install-new">
-<URL>-q --no-check-certificate &url2;/packages.generic/jre-7u2-i586.txz</URL>
+<URL>-q --no-check-certificate &url2;/packages/&pkgnam;/jre-7u2-i586.txz</URL>
 </FILE>
 
 <FILE Name="&pkg;/libav-i486-rj.txz" Run="upgradepkg --install-new">
-<URL>-q --no-check-certificate &url2;/packages.custom/libav-i486-rj.txz</URL>
+<URL>-q --no-check-certificate &url2;/packages/&pkgnam;/libav-i486-rj.txz</URL>
 </FILE>
 
 <FILE Name="&pkg;/x264-snapshot-20120727-2245-stable-i486-rj.tgz" Run="upgradepkg --install-new">
-<URL>-q --no-check-certificate &url2;/packages.custom/x264-snapshot-20120727-2245-stable-i486-rj.tgz</URL>
+<URL>-q --no-check-certificate &url2;/packages/&pkgnam;/x264-snapshot-20120727-2245-stable-i486-rj.tgz</URL>
 </FILE>
 
 <FILE Name="/tmp/plugin-cleanup" Run="/bin/bash">
