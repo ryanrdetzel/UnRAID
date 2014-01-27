@@ -3,7 +3,8 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY plugin "LMS">
 <!ENTITY author "overbyrn">
-<!ENTITY plgver "1.6a">
+<!ENTITY plgver "1.7">
+<!ENTITY pkgnam "lms">
 <!ENTITY pkg "/boot/packages">
 <!ENTITY plg "/boot/config/plugins/lms">
 <!ENTITY img "/boot/config/plugins/images">
@@ -85,7 +86,7 @@ rm -f /tmp/plugin-prepare
 </FILE>
 
 <FILE Name="&pkg;/perl-5.10.1-i486-1.txz" Run="upgradepkg --install-new">
-<URL>-q --no-check-certificate &url2;/packages.generic/perl-5.10.1-i486-1.txz</URL>
+<URL>-q --no-check-certificate &url2;/packages/&pkgnam;/perl-5.10.1-i486-1.txz</URL>
 </FILE>
 
 <FILE Name="/tmp/plugin-cleanup" Run="/bin/bash">

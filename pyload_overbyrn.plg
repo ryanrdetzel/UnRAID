@@ -3,7 +3,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY plugin "pyLoad">
 <!ENTITY author "overbyrn">
-<!ENTITY plgver "0.5">
+<!ENTITY plgver "0.6">
 <!ENTITY pkgnam "pyload">
 <!ENTITY pkg "/boot/packages">
 <!ENTITY plg "/boot/config/plugins/pyload">
@@ -103,71 +103,71 @@ rm -f /tmp/plugin-prepare
 </FILE>
 
 <FILE Name="&pkg;/git-1.7.4.4-i486-1.txz" Run="upgradepkg --install-new">
-<URL>-q --no-check-certificate &url2;/packages.generic/git-1.7.4.4-i486-1.txz</URL>
+<URL>-q --no-check-certificate &url2;/packages/&pkgnam;/git-1.7.4.4-i486-1.txz</URL>
 </FILE>
 
 <FILE Name="&pkg;/curl-7.21.4-i486-1.txz" Run="upgradepkg --install-new">
-<URL>-q --no-check-certificate &url2;/packages.generic/curl-7.21.4-i486-1.txz</URL>
+<URL>-q --no-check-certificate &url2;/packages/&pkgnam;/curl-7.21.4-i486-1.txz</URL>
 </FILE>
 
 <FILE Name="&pkg;/zlib-1.2.5-i486-4.txz" Run="upgradepkg --install-new">
-<URL>-q --no-check-certificate &url2;/packages.generic/zlib-1.2.5-i486-4.txz</URL>
+<URL>-q --no-check-certificate &url2;/packages/&pkgnam;/zlib-1.2.5-i486-4.txz</URL>
 </FILE>
 
 <FILE Name="&pkg;/libidn-1.19-i486-1.txz" Run="upgradepkg --install-new">
-<URL>-q --no-check-certificate &url2;/packages.generic/libidn-1.19-i486-1.txz</URL>
+<URL>-q --no-check-certificate &url2;/packages/&pkgnam;/libidn-1.19-i486-1.txz</URL>
 </FILE>
 
 <FILE Name="&pkg;/python-2.6.6-i486-1.txz" Run="upgradepkg --install-new">
-<URL>-q --no-check-certificate &url2;/packages.generic/python-2.6.6-i486-1.txz</URL>
+<URL>-q --no-check-certificate &url2;/packages/&pkgnam;/python-2.6.6-i486-1.txz</URL>
 </FILE>
 
 <FILE Name="&pkg;/pycurl-7.19.0-i686-1.txz" Run="upgradepkg --install-new">
-<URL>-q --no-check-certificate &url2;/packages.generic/pycurl-7.19.0-i686-1.txz</URL>
+<URL>-q --no-check-certificate &url2;/packages/&pkgnam;/pycurl-7.19.0-i686-1.txz</URL>
 </FILE>
 
 <FILE Name="&pkg;/sqlite-3.7.14.1-i486-1_slack14.0.txz" Run="upgradepkg --install-new">
-<URL>-q --no-check-certificate &url2;/packages.generic/sqlite-3.7.14.1-i486-1_slack14.0.txz</URL>
+<URL>-q --no-check-certificate &url2;/packages/&pkgnam;/sqlite-3.7.14.1-i486-1_slack14.0.txz</URL>
 </FILE>
 
 <FILE Name="&pkg;/unrar-4.2.4-i486-1alien.tgz" Run="upgradepkg --install-new">
-<URL>-q --no-check-certificate &url2;/packages.generic/unrar-4.2.4-i486-1alien.tgz</URL>
+<URL>-q --no-check-certificate &url2;/packages/&pkgnam;/unrar-4.2.4-i486-1alien.tgz</URL>
 </FILE>
 
 <FILE Name="&pkg;/infozip-6.0-i486-1.txz" Run="upgradepkg --install-new">
-<URL>-q --no-check-certificate &url2;/packages.generic/infozip-6.0-i486-1.txz</URL>
+<URL>-q --no-check-certificate &url2;/packages/&pkgnam;/infozip-6.0-i486-1.txz</URL>
 </FILE>
 
 <FILE Name="&pkg;/pil-1.1.7-i486-1.txz" Run="upgradepkg --install-new">
-<URL>-q --no-check-certificate &url2;/packages.generic/pil-1.1.7-i486-1.txz</URL>
+<URL>-q --no-check-certificate &url2;/packages/&pkgnam;/pil-1.1.7-i486-1.txz</URL>
 </FILE>
 
 <FILE Name="&pkg;/libjpeg-v8a-i486-1.txz" Run="upgradepkg --install-new">
-<URL>-q --no-check-certificate &url2;/packages.generic/libjpeg-v8a-i486-1.txz</URL>
+<URL>-q --no-check-certificate &url2;/packages/&pkgnam;/libjpeg-v8a-i486-1.txz</URL>
 </FILE>
 
 <FILE Name="&pkg;/libpng-1.4.12-i486-1_slack13.1.txz" Run="upgradepkg --install-new">
-<URL>-q --no-check-certificate &url2;/packages.generic/libpng-1.4.12-i486-1_slack13.1.txz</URL>
+<URL>-q --no-check-certificate &url2;/packages/&pkgnam;/libpng-1.4.12-i486-1_slack13.1.txz</URL>
 </FILE>
 
 <FILE Name="&pkg;/libtiff-3.9.6-i486-1_slack13.1.txz" Run="upgradepkg --install-new">
-<URL>-q --no-check-certificate &url2;/packages.generic/libtiff-3.9.6-i486-1_slack13.1.txz</URL>
+<URL>-q --no-check-certificate &url2;/packages/&pkgnam;/libtiff-3.9.6-i486-1_slack13.1.txz</URL>
 </FILE>
 
 <FILE Name="&pkg;/spidermonkey-1.7.0-i486-3ng.txz" Run="upgradepkg --install-new">
-<URL>-q --no-check-certificate &url2;/packages.generic/spidermonkey-1.7.0-i486-3ng.txz</URL>
+<URL>-q --no-check-certificate &url2;/packages/&pkgnam;/spidermonkey-1.7.0-i486-3ng.txz</URL>
 </FILE>
 
 <FILE Name="&pkg;/tesseract-3.00-i486-1sl.txz" Run="upgradepkg --install-new">
-<URL>-q --no-check-certificate &url2;/packages.generic/tesseract-3.00-i486-1sl.txz</URL>
+<URL>-q --no-check-certificate &url2;/packages/&pkgnam;/tesseract-3.00-i486-1sl.txz</URL>
 </FILE>
 
 <FILE Name="&pkg;/pycrypto-2.0.1-i486-1gsb.txz" Run="upgradepkg --install-new">
-<URL>-q --no-check-certificate &url2;/packages.generic/pycrypto-2.0.1-i486-1gsb.txz</URL>
+<URL>-q --no-check-certificate &url2;/packages/&pkgnam;/pycrypto-2.0.1-i486-1gsb.txz</URL>
 </FILE>
 
 <FILE Name="&plg;/files.db" Run="upgradepkg --install-new">
-<URL>-q --no-check-certificate &url2;/packages.custom/files.db</URL>
+<URL>-q --no-check-certificate &url2;/packages/&pkgnam;/files.db</URL>
 </FILE>
 
 <FILE Name="/tmp/plugin-cleanup" Run="/bin/bash">

@@ -3,7 +3,8 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY plugin "DenyHosts">
 <!ENTITY author "overbyrn">
-<!ENTITY plgver "1.2a">
+<!ENTITY plgver "1.3">
+<!ENTITY pkgnam "denyhosts">
 <!ENTITY pkg "/boot/packages">
 <!ENTITY plg "/boot/config/plugins/denyhosts">
 <!ENTITY img "/boot/config/plugins/images">
@@ -86,11 +87,11 @@ rm -f /tmp/plugin-prepare
 </FILE>
 
 <FILE Name="&pkg;/python-2.6.6-i486-1.txz" Run="upgradepkg --install-new">
-<URL>-q --no-check-certificate &url2;/packages.generic/python-2.6.6-i486-1.txz</URL>
+<URL>-q --no-check-certificate &url2;/packages/&pkgnam;/python-2.6.6-i486-1.txz</URL>
 </FILE>
 
 <FILE Name="&plg;/DenyHosts-2.6.tar.gz">
-<URL>-q --no-check-certificate &url2;/packages.custom/DenyHosts-2.6.tar.gz</URL>
+<URL>-q --no-check-certificate &url2;/packages/&pkgnam;/DenyHosts-2.6.tar.gz</URL>
 </FILE>
 
 <FILE Name="/tmp/plugin-cleanup" Run="/bin/bash">

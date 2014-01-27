@@ -3,7 +3,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY plugin "SABnzbd">
 <!ENTITY author "overbyrn">
-<!ENTITY plgver "1.0a">
+<!ENTITY plgver "1.1">
 <!ENTITY pkgnam "sabnzbd">
 <!ENTITY pkg "/boot/packages">
 <!ENTITY plg "/boot/config/plugins/sabnzbd">
@@ -96,35 +96,35 @@ rm -f /tmp/plugin-prepare
 </FILE>
 
 <FILE Name="/boot/packages/python-2.6.6-i486-1.txz" Run="upgradepkg --install-new">
-<URL>-q --no-check-certificate &url2;/packages.generic/python-2.6.6-i486-1.txz</URL>
+<URL>-q --no-check-certificate &url2;/packages/&pkgnam;/python-2.6.6-i486-1.txz</URL>
 </FILE>
 
 <FILE Name="/boot/packages/python-cheetah-2.4.4-i486-1alien.tgz" Run="upgradepkg --install-new">
-<URL>-q --no-check-certificate &url2;/packages.generic/python-cheetah-2.4.4-i486-1alien.tgz</URL>
+<URL>-q --no-check-certificate &url2;/packages/&pkgnam;/python-cheetah-2.4.4-i486-1alien.tgz</URL>
 </FILE>
 
 <FILE Name="/boot/packages/python-yenc-0.3-i486-1alien.tgz" Run="upgradepkg --install-new">
-<URL>-q --no-check-certificate &url2;/packages.generic/python-yenc-0.3-i486-1alien.tgz</URL>
+<URL>-q --no-check-certificate &url2;/packages/&pkgnam;/python-yenc-0.3-i486-1alien.tgz</URL>
 </FILE>
 
 <FILE Name="/boot/packages/sqlite-3.7.14.1-i486-1_slack14.0.txz" Run="upgradepkg --install-new">
-<URL>-q --no-check-certificate &url2;/packages.generic/sqlite-3.7.14.1-i486-1_slack14.0.txz</URL>
+<URL>-q --no-check-certificate &url2;/packages/&pkgnam;/sqlite-3.7.14.1-i486-1_slack14.0.txz</URL>
 </FILE>
 
 <FILE Name="/boot/packages/unrar-5.0.11-i486-1rj.txz" Run="upgradepkg --install-new">
-<URL>-q --no-check-certificate &url2;/packages.custom/unrar-5.0.11-i486-1rj.txz</URL>
+<URL>-q --no-check-certificate &url2;/packages/&pkgnam;/unrar-5.0.11-i486-1rj.txz</URL>
 </FILE>
 
 <FILE Name="/boot/packages/infozip-6.0-i486-1.txz" Run="upgradepkg --install-new">
-<URL>-q --no-check-certificate &url2;/packages.generic/infozip-6.0-i486-1.txz</URL>
+<URL>-q --no-check-certificate &url2;/packages/&pkgnam;/infozip-6.0-i486-1.txz</URL>
 </FILE>
 
 <FILE Name="/boot/packages/pyopenssl-0.11-i486-1alien.tgz" Run="upgradepkg --install-new">
-<URL>-q --no-check-certificate &url2;/packages.generic/pyopenssl-0.11-i486-1alien.tgz</URL>
+<URL>-q --no-check-certificate &url2;/packages/&pkgnam;/pyopenssl-0.11-i486-1alien.tgz</URL>
 </FILE>
 
 <FILE Name="/boot/packages/par2cmdline_tbb-0.4-i486-1kh.tgz" Run="upgradepkg --install-new">
-<URL>-q --no-check-certificate &url2;/packages.generic/par2cmdline_tbb-0.4-i486-1kh.tgz</URL>
+<URL>-q --no-check-certificate &url2;/packages/&pkgnam;/par2cmdline_tbb-0.4-i486-1kh.tgz</URL>
 </FILE>
 
 <FILE Name="/tmp/plugin-cleanup" Run="/bin/bash">

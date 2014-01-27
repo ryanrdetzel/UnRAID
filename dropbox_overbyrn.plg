@@ -3,7 +3,8 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY plugin "Dropbox">
 <!ENTITY author "overbyrn">
-<!ENTITY plgver "1.3c">
+<!ENTITY plgver "1.4">
+<!ENTITY pkgnam "dropbox">
 <!ENTITY pkg "/boot/packages">
 <!ENTITY plg "/boot/config/plugins/dropbox">
 <!ENTITY img "/boot/config/plugins/images">
@@ -83,7 +84,7 @@ rm -f /tmp/plugin-prepare
 </FILE>
 
 <FILE Name="&pkg;/python-2.6.6-i486-1.txz" Run="upgradepkg --install-new">
-<URL>-q --no-check-certificate &url2;/packages.generic/python-2.6.6-i486-1.txz</URL>
+<URL>-q --no-check-certificate &url2;/packages/&pkgnam;/python-2.6.6-i486-1.txz</URL>
 </FILE>
 
 <FILE Name="&plg;/dropbox.py" >
@@ -340,7 +341,7 @@ dropbox_updateapp()
   dropbox_stop;
   echo "Downloading Update..."
   REMAPP=$(wget --no-check-certificate https://dl.dropbox.com/u/572553/UnRAID/plugin.version.control/dropbox_appver.txt -q -O - | grep -i $BRANCH | cut -d: -f2)
-  wget -q -P /tmp --no-check-certificate https://dl.dropbox.com/u/572553/UnRAID/packages.custom/$REMAPP 2>/dev/null
+  wget -q -P /tmp --no-check-certificate https://dl.dropbox.com/u/572553/UnRAID/packages/dropbox/$REMAPP 2>/dev/null
   if [ ! -f /tmp/$REMAPP ]; then
     echo "Download failed, update aborted!"
     sleep 2
@@ -918,7 +919,7 @@ REMAPP=$(wget --no-check-certificate https://dl.dropbox.com/u/572553/UnRAID/plug
 echo "Looking for locally saved version of $REMAPP"
 if [[ ! -e &plg;/$REMAPP ]]; then
   echo "Local saved version does not exist, downloading $REMAPP to /tmp"
-  wget -q -P /tmp --no-check-certificate https://dl.dropbox.com/u/572553/UnRAID/packages.custom/$REMAPP 2>/dev/null
+  wget -q -P /tmp --no-check-certificate https://dl.dropbox.com/u/572553/UnRAID/packages/dropbox/$REMAPP 2>/dev/null
   echo "Installing Dropbox from file: /tmp/$REMAPP..."
   tar -C /usr/local/dropbox -zxvf /tmp/$REMAPP
   echo "Deleting any old builds which may be at &plg;..."

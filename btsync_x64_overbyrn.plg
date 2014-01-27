@@ -3,7 +3,8 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY plugin "BTSync">
 <!ENTITY author "overbyrn">
-<!ENTITY plgver "1.0">
+<!ENTITY plgver "1.1">
+<!ENTITY pkgnam "btsync.x64">
 <!ENTITY pkg "/boot/packages">
 <!ENTITY plg "/boot/config/plugins/btsync">
 <!ENTITY img "/boot/config/plugins/images">
