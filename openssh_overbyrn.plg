@@ -144,6 +144,10 @@ From command line (telnet / putty):
 2. In Putty, create an entry to your UnRAID server and in "Connection -> SSH -> Auth" section of Putty, browse for the file you created (id_rsa.ppk).
 
 Verify you are able to login successfully with the private key.
+
+Keeping known_hosts, private and public keys on the unraid server
+In some instances you'll want to keep the private key on unraid and distribute the public key so you can login to other remove machines passwordless. All files in the /boot/config/plugins/ssh/<USERNAME>/.ssh/ are copied over to repeat the steps above for generating a key (to create a new one) and keep the private and public keys in the .ssh directory and they'll be copied over when it's installed. When you simple paste the public key in the other servers authorized_keys section and you can login to that machine without a password.
+
 ]]>
 </INLINE>
 </FILE>
@@ -281,10 +285,10 @@ write_config()
       # to see what/where to maintain key files
       # ** IT IS CURRENTLY THE USERS RESPONSIBILITY TO PRE-GENERATE A PUBLIC/PRIVATE KEYPAIR **
       if [ -f /boot/config/plugins/ssh/$USERTEMP/.ssh/authorized_keys ]; then
-        cp --preserve=timestamps -p /boot/config/plugins/ssh/$USERTEMP/.ssh/authorized_keys /home/$USERTEMP/.ssh/authorized_keys
+        cp --preserve=timestamps -p /boot/config/plugins/ssh/$USERTEMP/.ssh/* /home/$USERTEMP/.ssh/
         chmod 700 /home/$USERTEMP/.ssh
-        chmod 600 /home/$USERTEMP/.ssh/authorized_keys
-        chown $USERTEMP:users /home/$USERTEMP/.ssh/authorized_keys
+        chmod 600 /home/$USERTEMP/.ssh/*
+        chown $USERTEMP:users /home/$USERTEMP/.ssh/*
       else
         mkdir -p /boot/config/plugins/ssh/$USERTEMP/.ssh 2>/dev/null
         # put a lil help file in each user dir, saying what to do
@@ -297,10 +301,10 @@ write_config()
   if [[ $PERMITROOTLOGIN = "yes" ]]; then
     [ ! -d /root/.ssh ] && mkdir /root/.ssh
     if [ -f /boot/config/plugins/ssh/root/.ssh/authorized_keys ]; then
-	  cp --preserve=timestamps -p /boot/config/plugins/ssh/root/.ssh/authorized_keys /root/.ssh/authorized_keys
+	    cp --preserve=timestamps -p /boot/config/plugins/ssh/root/.ssh/* /root/.ssh/
       chmod 700 /root/.ssh
-      chmod 600 /root/.ssh/authorized_keys
-      chown root:root /root/.ssh/authorized_keys  
+      chmod 600 /root/.ssh/*
+      chown root:root /root/.ssh/*  
 	fi  
   fi
  
